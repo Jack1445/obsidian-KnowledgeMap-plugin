@@ -15,6 +15,16 @@ function seededPoint(id: string, index: number, total: number): Point {
 	return { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius };
 }
 
+const MAX_AUTOMATIC_RADIUS = 280;
+
+function clampAutomaticPosition(position: SavedNodePosition): void {
+	const distance = Math.hypot(position.x, position.y);
+	if (distance <= MAX_AUTOMATIC_RADIUS) return;
+	const scale = MAX_AUTOMATIC_RADIUS / distance;
+	position.x *= scale;
+	position.y *= scale;
+}
+
 export function createInitialPositions(
 	graph: FolderGraph,
 	saved: Record<string, SavedNodePosition>,
@@ -97,6 +107,7 @@ export function relaxNewPositions(
 			if (!position || !movement) continue;
 			position.x += Math.max(-8, Math.min(8, movement.x)) * cooling;
 			position.y += Math.max(-8, Math.min(8, movement.y)) * cooling;
+			clampAutomaticPosition(position);
 		}
 	}
 }

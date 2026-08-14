@@ -45,6 +45,7 @@ export class GraphRenderer {
 	} | null = null;
 	private readonly nodeElements = new Map<string, SVGGElement>();
 	private readonly edgeElements = new Map<string, SVGLineElement>();
+	private readonly resizeObserver: ResizeObserver;
 
 	constructor(private readonly options: GraphRendererOptions) {
 		this.viewport = { ...options.viewport };
@@ -54,12 +55,15 @@ export class GraphRenderer {
 		this.world.append(this.edgeLayer, this.nodeLayer);
 		this.svg.append(this.world);
 		options.container.append(this.svg);
+		this.resizeObserver = new ResizeObserver(() => this.applyViewport());
+		this.resizeObserver.observe(this.svg);
 		this.render();
 		this.bindViewportEvents();
 	}
 
 	destroy(): void {
 		this.destroyed = true;
+		this.resizeObserver.disconnect();
 		this.svg.remove();
 	}
 

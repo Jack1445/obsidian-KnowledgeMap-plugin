@@ -1,5 +1,8 @@
+import { writeFile } from 'node:fs/promises';
+
 const port = process.env.OBSIDIAN_DEBUG_PORT ?? '9223';
 const expression = process.argv.slice(2).join(' ');
+const screenshotPath = process.env.OBSIDIAN_SCREENSHOT_PATH;
 
 if (!expression) {
 	throw new Error('Usage: node scripts/obsidian-cdp.mjs <JavaScript expression>');
@@ -41,6 +44,11 @@ const result = await send('Runtime.evaluate', {
 	returnByValue: true,
 	userGesture: true,
 });
+
+if (screenshotPath) {
+	const screenshot = await send('Page.captureScreenshot', { format: 'png', fromSurface: true });
+	await writeFile(screenshotPath, Buffer.from(screenshot.data, 'base64'));
+}
 socket.close();
 
 if (result.exceptionDetails) {

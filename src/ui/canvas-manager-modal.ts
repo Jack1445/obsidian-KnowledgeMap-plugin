@@ -41,7 +41,7 @@ export class CanvasManagerModal extends Modal {
 
 		new Setting(this.contentEl)
 			.setName('Globe canvas')
-			.setDesc('Place this folder鈥檚 nodes on an interactive 3d globe. Drag a label to save its geographic position.')
+			.setDesc("Place this folder's nodes on an interactive globe. Drag a label to save its geographic position.")
 			.addButton((button) => button.setButtonText('Open').onClick(() => {
 				this.close();
 				void this.plugin.activateGlobe(this.folderPath);
@@ -76,4 +76,3 @@ export class CanvasManagerModal extends Modal {
 		});
 	}
 }
-

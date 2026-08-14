@@ -2,7 +2,7 @@ export const GLOBE_RADIUS = 2;
 
 const DEGREES_TO_RADIANS = Math.PI / 180;
 const RADIANS_TO_DEGREES = 180 / Math.PI;
-const FALLBACK_LATITUDES = [18, -18, 40, -36, 6, 28];
+const FALLBACK_LATITUDES = [16, -16, 28, -28, 4, 22];
 
 export interface LatLng {
 	lat: number;
@@ -48,6 +48,6 @@ export function defaultLatLng(id: string, index: number): LatLng {
 		lat: FALLBACK_LATITUDES[hashedIndex % FALLBACK_LATITUDES.length] ?? 0,
 		// Keep never-positioned nodes on the camera-facing hemisphere initially.
 		// Once dragged, their actual latitude/longitude is persisted instead.
-		lng: -150 + ((hashedIndex * 67) % 120),
+		lng: -130 + ((hashedIndex * 67) % 80),
 	};
 }

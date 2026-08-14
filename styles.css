@@ -275,7 +275,7 @@
 	border-radius: 999px;
 	background: rgb(9 18 36 / 82%);
 	box-shadow: 0 3px 14px rgb(0 0 0 / 45%), 0 0 12px rgb(93 162 255 / 18%);
-	color: #eff6ff;
+	color: #eff6ff !important;
 	font-size: 11px;
 	line-height: 1.25;
 	text-overflow: ellipsis;
@@ -294,7 +294,9 @@
 .knowledge-map-globe__label.is-folder,
 .knowledge-map-globe__label.is-parent-folder {
 	border-color: rgb(251 191 36 / 75%);
-	background: rgb(67 42 10 / 86%);
+	background: rgb(74 49 13 / 90%);
+	color: #fff8dc !important;
+	font-weight: var(--font-medium);
 }
 
 .knowledge-map-globe__label.is-external-note {

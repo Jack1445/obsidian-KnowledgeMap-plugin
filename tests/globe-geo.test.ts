@@ -17,6 +17,8 @@ describe('globe coordinates', () => {
 		for (let index = 0; index < 20; index += 1) {
 			const position = defaultLatLng(`note:${index}`, index);
 			expect(latLngToVec3(position.lat, position.lng).z).toBeGreaterThan(0);
+			expect(position.lng).toBeGreaterThanOrEqual(-130);
+			expect(position.lng).toBeLessThan(-50);
 		}
 	});
 });

@@ -61,7 +61,7 @@ export class GlobeView extends ItemView {
 		if (!this.globeEl) return;
 		this.renderer?.destroy();
 		this.globeEl.empty();
-		this.titleEl.setText(`${folderDisplayName(this.currentPath)} 路 Globe`);
+		this.titleEl.setText(`${folderDisplayName(this.currentPath)} · Globe`);
 		const graph = this.graphBuilder.build(this.currentPath, this.plugin.store.settings.showExternalLinks);
 		this.renderer = new GlobeRenderer({
 			container: this.globeEl,
@@ -84,4 +84,3 @@ export class GlobeView extends ItemView {
 		void this.app.workspace.openLinkText(node.path, this.currentPath, newLeaf);
 	}
 }
-
