@@ -25,6 +25,13 @@ function svgElement<K extends keyof SVGElementTagNameMap>(name: K): SVGElementTa
 	return document.createElementNS(SVG_NAMESPACE, name);
 }
 
+function visibleLabel(value: string, maximumLength = 18): string {
+	const characters = [...value];
+	return characters.length <= maximumLength
+		? value
+		: `${characters.slice(0, maximumLength - 1).join('')}…`;
+}
+
 export class GraphRenderer {
 	private readonly svg = svgElement('svg');
 	private readonly world = svgElement('g');
@@ -91,7 +98,7 @@ export class GraphRenderer {
 			const to = this.options.positions[edge.to];
 			if (!from || !to) continue;
 			const line = svgElement('line');
-			line.addClass('knowledge-map__edge');
+			line.addClass('knowledge-map__edge', `is-${edge.kind}`);
 			line.setAttribute('x1', `${from.x}`);
 			line.setAttribute('y1', `${from.y}`);
 			line.setAttribute('x2', `${to.x}`);
@@ -115,6 +122,9 @@ export class GraphRenderer {
 		group.setAttribute('role', 'button');
 		group.setAttribute('aria-label', `${node.label}, ${node.kind}`);
 		group.style.setProperty('--knowledge-map-node-scale', `${this.options.nodeScale}`);
+		const title = svgElement('title');
+		title.textContent = node.label;
+		group.append(title);
 
 		const halo = svgElement('circle');
 		halo.addClass('knowledge-map__node-halo');
@@ -129,7 +139,7 @@ export class GraphRenderer {
 			label.addClass('knowledge-map__node-label');
 			label.setAttribute('y', node.kind.includes('folder') ? '24' : '19');
 			label.setAttribute('text-anchor', 'middle');
-			label.textContent = node.label;
+			label.textContent = visibleLabel(node.label);
 			group.append(label);
 		}
 

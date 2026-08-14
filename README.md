@@ -4,11 +4,12 @@ Knowledge Map turns an Obsidian vault into a navigable, persistent map.
 
 Unlike Obsidian's core Graph view, folders are first-class nodes: open the vault map, click a folder to enter it, and click a Markdown note to open it. Notes in the same map are connected using their real Obsidian links. When you drag a node, Knowledge Map remembers its position.
 
-> Status: early development (`0.1.0`). The current milestone focuses on the folder-aware 2D map. Plant hierarchy and globe renderers are planned on top of the same data layer.
+> Status: early development (`0.1.0`). The plugin currently includes the folder-aware 2D map, Excalidraw canvas integration, and an interactive globe canvas.
 
 ## What it does
 
-- Shows the current folder, its direct child folders, and its direct Markdown files.
+- Shows the current folder above one orderly row of its direct child folders and Markdown files.
+- Draws containment edges from the current folder to every direct child.
 - Lets you drill into folders and navigate with back, forward, and breadcrumbs.
 - Opens note nodes in Obsidian, including Ctrl/Cmd-click in a new tab.
 - Draws resolved internal links between visible notes.
@@ -24,6 +25,7 @@ Unlike Obsidian's core Graph view, folders are first-class nodes: open the vault
 | Folder map | A graph generated from one real folder in the vault. |
 | Folder node | A direct child folder. Clicking it drills down. |
 | Note node | A Markdown file. Clicking it opens the note. |
+| Containment edge | A hierarchy line from the current folder to one of its direct children. |
 | Link edge | A resolved Obsidian link between two visible notes. It is not treated as a parent-child relation. |
 | Saved layout | Node coordinates and viewport stored by this plugin. It never changes note contents. |
 
@@ -42,7 +44,15 @@ For convenient testing, place or link this repository at:
 <test-vault>/.obsidian/plugins/knowledge-map/
 ```
 
-Then enable **Knowledge Map** under **Settings → Community plugins**. Use the ribbon icon or the command **Open knowledge map**.
+Then enable **Knowledge Map** under **Settings → Community plugins**.
+
+Three ribbon icons provide direct access:
+
+- **Open 2D knowledge map** (`network` icon)
+- **Open knowledge globe** (`globe` icon)
+- **Manage knowledge canvases** (`dashboard` icon)
+
+The same actions are available from the command palette by searching for `Knowledge Map`.
 
 Production checks:
 
@@ -62,6 +72,7 @@ This runs type checking, linting, tests, and a production build.
 - [Getting started as a contributor](docs/development/getting-started.md)
 - [Testing and manual QA](docs/development/testing.md)
 - [Roadmap](docs/product/roadmap.md)
+- [Change log](CHANGELOG.md)
 
 ## Privacy and safety
 

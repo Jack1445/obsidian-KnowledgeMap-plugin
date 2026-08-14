@@ -1,6 +1,14 @@
 import { App, TFile, TFolder } from 'obsidian';
-import { nodeId, ROOT_PATH, type FolderGraph, type MapEdge, type MapNode } from '../core/graph';
-import { folderDisplayName, normalizeFolderPath, parentFolderPath } from '../core/paths';
+import {
+	compareMapNodes,
+	createContainmentEdges,
+	nodeId,
+	ROOT_PATH,
+	type FolderGraph,
+	type MapEdge,
+	type MapNode,
+} from '../core/graph';
+import { folderDisplayName, normalizeFolderPath } from '../core/paths';
 
 export class VaultGraphBuilder {
 	constructor(private readonly app: App) {}
@@ -11,36 +19,29 @@ export class VaultGraphBuilder {
 		const nodes: MapNode[] = [];
 		const edges: MapEdge[] = [];
 
+		let currentFolderNode: MapNode | null = null;
 		// The vault root is a navigation context, not a visible graph node.
 		if (normalizedPath !== ROOT_PATH) {
-			nodes.push({
+			currentFolderNode = {
 				id: nodeId('current-folder', normalizedPath),
 				path: normalizedPath,
 				label: folderDisplayName(normalizedPath),
 				kind: 'current-folder',
-			});
+			};
+			nodes.push(currentFolderNode);
 		}
 
-		const parentPath = parentFolderPath(normalizedPath);
-		if (parentPath !== null) {
-			nodes.push({
-				id: nodeId('parent-folder', parentPath),
-				path: parentPath,
-				label: '..',
-				kind: 'parent-folder',
-			});
-		}
-
+		const directChildren: MapNode[] = [];
 		for (const child of folder.children) {
 			if (child instanceof TFolder) {
-				nodes.push({
+				directChildren.push({
 					id: nodeId('folder', child.path),
 					path: child.path,
 					label: child.name,
 					kind: 'folder',
 				});
 			} else if (child instanceof TFile && child.extension === 'md') {
-				nodes.push({
+				directChildren.push({
 					id: nodeId('note', child.path),
 					path: child.path,
 					label: child.basename,
@@ -48,6 +49,9 @@ export class VaultGraphBuilder {
 				});
 			}
 		}
+		directChildren.sort(compareMapNodes);
+		nodes.push(...directChildren);
+		if (currentFolderNode) edges.push(...createContainmentEdges(currentFolderNode, directChildren));
 
 		const visibleNotes = new Map(
 			nodes.filter((node) => node.kind === 'note').map((node) => [node.path, node]),
@@ -82,7 +86,7 @@ export class VaultGraphBuilder {
 			}
 		}
 
-		nodes.push(...externalNodes.values());
+		nodes.push(...[...externalNodes.values()].sort(compareMapNodes));
 		return { folderPath: normalizedPath, nodes, edges };
 	}
 

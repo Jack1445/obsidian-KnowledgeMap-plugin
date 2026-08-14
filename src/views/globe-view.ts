@@ -76,7 +76,7 @@ export class GlobeView extends ItemView {
 	}
 
 	private activateNode(node: MapNode, event: PointerEvent): void {
-		if (node.kind === 'folder' || node.kind === 'parent-folder') {
+		if (node.kind === 'folder') {
 			this.openFolder(node.path);
 			return;
 		}

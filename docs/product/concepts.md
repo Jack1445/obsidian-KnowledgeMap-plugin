@@ -6,19 +6,23 @@ A folder map is generated from one real vault folder. It contains the current fo
 
 ## Node types
 
-- **Current folder:** the stable center of the map.
-- **Parent folder:** a compact `..` node that returns one level up.
+- **Current folder:** the hierarchy root shown above its direct children.
 - **Folder:** drills into that folder.
 - **Note:** opens the Markdown file.
 - **External note:** a dimmed note linked from the current folder but stored elsewhere.
 
 ## Links
 
-Edges come from `MetadataCache.resolvedLinks`. They represent real internal links. Knowledge Map never interprets them as hierarchy unless a future explicit semantic rule says otherwise.
+Two edge types are deliberately separate:
+
+- **Containment:** generated from the real Vault folder structure; connects the current folder to every direct child.
+- **Link:** generated from `MetadataCache.resolvedLinks`; represents a real internal note link and is not interpreted as hierarchy.
+
+Going up one level uses the toolbar navigation and breadcrumbs. The map does not add a synthetic `..` node.
 
 ## Persistent positions
 
-New nodes receive deterministic initial coordinates and a small force-layout pass. Existing nodes use saved coordinates. Dragging a node marks it fixed and saves its position after the gesture ends. Resetting a folder layout is the only normal action that intentionally discards those positions.
+Unmodified nodes use a deterministic hierarchy layout: the current folder is above, and folders then notes form a naturally sorted row below it. Dragging a node marks it fixed and saves its position after the gesture ends. Fixed positions override the automatic layout. Resetting a folder layout is the only normal action that intentionally discards those positions.
 
 ## Canvas types
 
@@ -26,3 +30,5 @@ New nodes receive deterministic initial coordinates and a small force-layout pas
 - **Blank canvas:** a native Excalidraw drawing. It requires the separate Excalidraw plugin and supports the full original drawing interface.
 - **Map canvas:** a native Excalidraw drawing pre-populated from the visible automatic folder map.
 - **Globe canvas:** an interactive Three.js globe using the same current-folder graph and separately saved latitude/longitude.
+
+The 2D map toolbar has visible **Globe** and **Canvases** buttons. Matching ribbon icons and command-palette commands provide global access.

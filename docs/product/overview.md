@@ -8,11 +8,13 @@ Knowledge Map adds a persistent spatial layer to the vault:
 
 1. Open the map at the vault root.
 2. See direct child folders and Markdown notes.
-3. Click a folder to enter its map.
+3. Click a folder to enter its map, where the folder sits above its direct children.
 4. Click a note to open it.
 5. Drag nodes into meaningful positions; those coordinates are restored later.
 
 The root map intentionally has no visible `Vault` node. The vault root is navigation context; its direct folders and notes are the map content.
+
+Inside a folder map, a containment edge connects the current-folder node to every direct child folder and note. These hierarchy edges come from the real Vault folder structure. Obsidian note links remain separate link edges.
 
 ## Source of truth
 

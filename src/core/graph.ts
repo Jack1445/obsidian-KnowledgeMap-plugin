@@ -1,4 +1,4 @@
-export type MapNodeKind = 'current-folder' | 'parent-folder' | 'folder' | 'note' | 'external-note';
+export type MapNodeKind = 'current-folder' | 'folder' | 'note' | 'external-note';
 
 export interface MapNode {
 	id: string;
@@ -11,7 +11,7 @@ export interface MapEdge {
 	id: string;
 	from: string;
 	to: string;
-	kind: 'link';
+	kind: 'containment' | 'link';
 	weight: number;
 }
 
@@ -43,4 +43,26 @@ export const ROOT_PATH = '/';
 
 export function nodeId(kind: MapNodeKind, path: string): string {
 	return `${kind}:${path}`;
+}
+
+export function compareMapNodes(left: MapNode, right: MapNode): number {
+	const rank: Record<MapNodeKind, number> = {
+		'current-folder': -1,
+		folder: 0,
+		note: 1,
+		'external-note': 2,
+	};
+	return rank[left.kind] - rank[right.kind]
+		|| left.label.localeCompare(right.label, undefined, { numeric: true, sensitivity: 'base' })
+		|| left.path.localeCompare(right.path);
+}
+
+export function createContainmentEdges(parent: MapNode, children: MapNode[]): MapEdge[] {
+	return children.map((child) => ({
+		id: `containment:${parent.path}->${child.path}`,
+		from: parent.id,
+		to: child.id,
+		kind: 'containment',
+		weight: 1,
+	}));
 }

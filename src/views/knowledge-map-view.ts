@@ -1,9 +1,9 @@
 import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type KnowledgeMapPlugin from '../main';
-import { ROOT_PATH, type MapNode } from '../core/graph';
+import { ROOT_PATH, type MapNode, type SavedNodePosition } from '../core/graph';
 import { normalizeFolderPath, parentFolderPath, remapPath } from '../core/paths';
 import { VaultGraphBuilder } from '../obsidian/vault-graph-builder';
-import { createInitialPositions, relaxNewPositions } from '../services/initial-layout';
+import { createInitialPositions } from '../services/initial-layout';
 import { NavigationHistory } from '../services/navigation-history';
 import { CanvasManagerModal } from '../ui/canvas-manager-modal';
 import { GraphRenderer } from './graph-renderer';
@@ -96,7 +96,10 @@ export class KnowledgeMapView extends ItemView {
 		this.breadcrumbEl = this.toolbarEl.createDiv({ cls: 'knowledge-map__breadcrumbs' });
 
 		const actions = this.toolbarEl.createDiv({ cls: 'knowledge-map__toolbar-group is-actions' });
-		this.iconButton(actions, 'layout-dashboard', 'Canvas menu', () => this.openCanvasMenu());
+		this.labeledButton(actions, 'globe-2', 'Open globe for this folder', 'Globe', () => {
+			void this.plugin.activateGlobe(this.currentPath);
+		});
+		this.labeledButton(actions, 'layout-dashboard', 'Manage canvases', 'Canvases', () => this.openCanvasMenu());
 		this.sliderControl(actions, 'Node size', 0.6, 1.8, 0.1, this.plugin.store.settings.nodeScale, (value) => {
 			this.plugin.store.setSettings({ nodeScale: value });
 			this.renderer?.setNodeScale(value);
@@ -147,6 +150,23 @@ export class KnowledgeMapView extends ItemView {
 		return button;
 	}
 
+	private labeledButton(
+		parent: HTMLElement,
+		icon: string,
+		label: string,
+		text: string,
+		callback: () => void,
+	): HTMLButtonElement {
+		const button = parent.createEl('button', {
+			cls: 'knowledge-map__toolbar-action',
+			attr: { 'aria-label': label },
+		});
+		setIcon(button, icon);
+		button.createSpan({ text });
+		button.addEventListener('click', callback);
+		return button;
+	}
+
 	private renderMap(): void {
 		if (!this.graphEl) return;
 		this.ensureCurrentFolderExists();
@@ -160,10 +180,10 @@ export class KnowledgeMapView extends ItemView {
 		const graph = this.graphBuilder.build(this.currentPath, settings.showExternalLinks);
 		const state = this.plugin.store.getMapState(this.currentPath);
 		const savedNodes = state?.nodes ?? {};
-		const newNodeIds = new Set(graph.nodes.filter((node) => !savedNodes[node.id]).map((node) => node.id));
 		const positions = createInitialPositions(graph, savedNodes);
-		relaxNewPositions(graph, positions, newNodeIds);
-		if (newNodeIds.size > 0) this.plugin.store.setNodePositions(this.currentPath, positions);
+		if (this.positionsChanged(savedNodes, positions)) {
+			this.plugin.store.setNodePositions(this.currentPath, positions);
+		}
 		this.lastGraph = graph;
 		this.lastPositions = positions;
 
@@ -210,12 +230,25 @@ export class KnowledgeMapView extends ItemView {
 	}
 
 	private activateNode(node: MapNode, event: MouseEvent): void {
-		if (node.kind === 'folder' || node.kind === 'parent-folder') {
+		if (node.kind === 'folder') {
 			this.openFolder(node.path);
 			return;
 		}
 		if (node.kind === 'current-folder') return;
 		const newLeaf = event.ctrlKey || event.metaKey || event.button === 1;
 		void this.app.workspace.openLinkText(node.path, this.currentPath, newLeaf);
+	}
+
+	private positionsChanged(
+		saved: Record<string, SavedNodePosition>,
+		positions: ReturnType<typeof createInitialPositions>,
+	): boolean {
+		return Object.entries(positions).some(([id, position]) => {
+			const existing = saved[id];
+			return !existing
+				|| existing.x !== position.x
+				|| existing.y !== position.y
+				|| existing.fixed !== position.fixed;
+		});
 	}
 }

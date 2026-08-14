@@ -12,6 +12,8 @@ interface FolderGraph {
 }
 ```
 
+`MapEdge.kind` distinguishes folder `containment` from resolved note `link` relationships. A non-root folder graph has one `current-folder` node and one containment edge to every direct child. No synthetic parent node is generated.
+
 ## Saved plugin data
 
 Obsidian stores the following through `Plugin.loadData()` and `Plugin.saveData()`:
@@ -21,10 +23,11 @@ interface KnowledgeMapData {
   schemaVersion: number;
   settings: KnowledgeMapSettings;
   mapStates: Record<string, FolderMapState>;
+  globePositions: Record<string, Record<string, GlobePosition>>;
 }
 ```
 
-Each `FolderMapState` contains only viewport and node coordinates. A 250 ms debounce combines frequent drag/zoom updates. On plugin unload, pending data is flushed immediately.
+Each `FolderMapState` contains only viewport and node coordinates. Automatic coordinates are recalculated from the deterministic hierarchy layout; a dragged node is marked fixed and its saved coordinates take precedence. Globe coordinates are stored separately as latitude and longitude. A 250 ms debounce combines frequent drag/zoom updates. On plugin unload, pending data is flushed immediately.
 
 ## Rename and delete behavior
 

@@ -77,7 +77,7 @@ export class ExcalidrawIntegration {
 		for (const node of graph.nodes) {
 			const point = positions[node.id];
 			if (!point) continue;
-			const isFolder = node.kind === 'folder' || node.kind === 'parent-folder';
+			const isFolder = node.kind === 'folder' || node.kind === 'current-folder';
 			const size = isFolder ? 112 : 84;
 			const x = point.x * 1.35 - size / 2;
 			const y = point.y * 1.35 - size / 2;
@@ -116,7 +116,7 @@ export class ExcalidrawIntegration {
 	}
 
 	private nodeLink(node: MapNode): string {
-		if (node.kind === 'folder' || node.kind === 'parent-folder' || node.kind === 'current-folder') {
+		if (node.kind === 'folder' || node.kind === 'current-folder') {
 			return `obsidian://open?path=${encodeURIComponent(node.path)}`;
 		}
 		return `[[${node.path}]]`;
@@ -129,4 +129,3 @@ export class ExcalidrawIntegration {
 		return null;
 	}
 }
-

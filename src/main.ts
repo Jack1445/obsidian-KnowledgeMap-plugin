@@ -16,25 +16,29 @@ export default class KnowledgeMapPlugin extends Plugin {
 
 		this.registerView(KNOWLEDGE_MAP_VIEW_TYPE, (leaf) => new KnowledgeMapView(leaf, this));
 		this.registerView(KNOWLEDGE_MAP_GLOBE_VIEW_TYPE, (leaf) => new GlobeView(leaf, this));
-		this.addRibbonIcon('network', 'Open knowledge map', () => void this.activateView());
+		this.addRibbonIcon('network', 'Open 2d knowledge map', () => void this.activateView());
+		this.addRibbonIcon('globe-2', 'Open knowledge globe', () => void this.activateGlobe('/'));
+		this.addRibbonIcon('layout-dashboard', 'Manage knowledge canvases', () => {
+			new CanvasManagerModal(this, '/', null, null).open();
+		});
 		this.addCommand({
 			id: 'open-map',
-			name: 'Open map',
+			name: 'Open 2d map',
 			callback: () => void this.activateView(),
 		});
 		this.addCommand({
 			id: 'new-blank-canvas',
-			name: 'New blank canvas',
+			name: 'Create new blank canvas',
 			callback: () => void this.excalidraw.createBlank('/'),
 		});
 		this.addCommand({
 			id: 'open-globe',
-			name: 'Open globe',
+			name: 'Open knowledge globe',
 			callback: () => void this.activateGlobe('/'),
 		});
 		this.addCommand({
 			id: 'manage-canvases',
-			name: 'Manage canvases',
+			name: 'Manage knowledge canvases',
 			callback: () => new CanvasManagerModal(this, '/', null, null).open(),
 		});
 		this.addSettingTab(new KnowledgeMapSettingTab(this.app, this));
@@ -56,6 +60,7 @@ export default class KnowledgeMapPlugin extends Plugin {
 			await leaf.setViewState({ type: KNOWLEDGE_MAP_VIEW_TYPE, active: true });
 		}
 		await this.app.workspace.revealLeaf(leaf);
+		this.app.workspace.setActiveLeaf(leaf, { focus: true });
 		if (leaf.view instanceof KnowledgeMapView) leaf.view.openFolder(folderPath);
 		else new Notice('Could not open knowledge map.');
 	}
@@ -97,6 +102,7 @@ export default class KnowledgeMapPlugin extends Plugin {
 			await leaf.setViewState({ type: KNOWLEDGE_MAP_GLOBE_VIEW_TYPE, active: true });
 		}
 		await this.app.workspace.revealLeaf(leaf);
+		this.app.workspace.setActiveLeaf(leaf, { focus: true });
 		if (leaf.view instanceof GlobeView) leaf.view.openFolder(folderPath);
 		else new Notice('Could not open knowledge globe.');
 	}
