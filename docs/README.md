@@ -9,3 +9,4 @@ Start with the section that matches your goal:
 - **I want to understand saved data:** [Data model](architecture/data-model.md)
 - **I want to start coding:** [Getting started](development/getting-started.md)
 - **I want to test a change:** [Testing](development/testing.md)
+- **I want to see the latest real Obsidian QA result:** [Manual QA — 2026-08-14](development/manual-qa-2026-08-14.md)
