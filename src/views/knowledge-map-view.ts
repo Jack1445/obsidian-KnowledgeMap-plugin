@@ -1,6 +1,6 @@
 import { ItemView, Notice, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type KnowledgeMapPlugin from '../main';
-import { ROOT_PATH, type MapNode, type SavedNodePosition } from '../core/graph';
+import { ROOT_PATH, type FolderGraph, type MapNode, type SavedNodePosition } from '../core/graph';
 import { normalizeFolderPath, parentFolderPath, remapPath } from '../core/paths';
 import { VaultGraphBuilder } from '../obsidian/vault-graph-builder';
 import { createInitialPositions } from '../services/initial-layout';
@@ -206,6 +206,21 @@ export class KnowledgeMapView extends ItemView {
 			onPositionChange: (id, position) => this.plugin.store.setNodePosition(this.currentPath, id, position),
 			onViewportChange: (viewport) => this.plugin.store.setViewport(this.currentPath, viewport),
 		});
+		this.renderEdgeLegend(graph);
+	}
+
+	private renderEdgeLegend(graph: FolderGraph): void {
+		const kinds = new Set(graph.edges.map((edge) => edge.kind));
+		if (kinds.size === 0) return;
+		const legend = this.graphEl.createDiv({ cls: 'knowledge-map__legend' });
+		if (kinds.has('containment')) this.legendItem(legend, 'containment', 'Folder hierarchy');
+		if (kinds.has('link')) this.legendItem(legend, 'link', 'Note reference');
+	}
+
+	private legendItem(parent: HTMLElement, kind: 'containment' | 'link', label: string): void {
+		const item = parent.createDiv({ cls: 'knowledge-map__legend-item' });
+		item.createSpan({ cls: `knowledge-map__legend-line is-${kind}` });
+		item.createSpan({ text: label });
 	}
 
 	private ensureCurrentFolderExists(): void {

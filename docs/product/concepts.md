@@ -18,6 +18,8 @@ Two edge types are deliberately separate:
 - **Containment:** generated from the real Vault folder structure; connects the current folder to every direct child.
 - **Link:** generated from `MetadataCache.resolvedLinks`; represents a real internal note link and is not interpreted as hierarchy.
 
+Containment edges render as solid warm-orange hierarchy curves. Note links render as dashed blue arcs. Both curves update immediately when a connected node is dragged.
+
 Going up one level uses the toolbar navigation and breadcrumbs. The map does not add a synthetic `..` node.
 
 ## Persistent positions

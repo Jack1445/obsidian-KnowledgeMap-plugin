@@ -28,3 +28,10 @@ All notable changes to Knowledge Map are documented here. Each tested GitHub che
 - Made 2D/globe entry actions focus an already-open target tab instead of only updating it in the background.
 - Preserved positions for nodes the user has manually dragged and fixed.
 - Added safe visual truncation and full-name tooltips so long labels do not overlap in the ordered row.
+
+### Changed — relationship lines
+
+- Replaced straight SVG lines with smooth curves that update live while nodes are dragged.
+- Styled folder-containment relationships as solid warm-orange curves.
+- Styled note-reference relationships as dashed blue arcs so hierarchy and links remain visually distinct.
+- Added a compact, context-aware legend that only shows relationship types present in the current map.

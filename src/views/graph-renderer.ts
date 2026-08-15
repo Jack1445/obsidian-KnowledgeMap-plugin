@@ -4,6 +4,7 @@ import type {
 	SavedNodePosition,
 	ViewportState,
 } from '../core/graph';
+import { createEdgePath } from '../services/edge-path';
 import { exceedsDragThreshold } from '../services/pointer-gesture';
 
 const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
@@ -51,7 +52,7 @@ export class GraphRenderer {
 		startNodeY: number;
 	} | null = null;
 	private readonly nodeElements = new Map<string, SVGGElement>();
-	private readonly edgeElements = new Map<string, SVGLineElement>();
+	private readonly edgeElements = new Map<string, SVGPathElement>();
 	private readonly resizeObserver: ResizeObserver;
 
 	constructor(private readonly options: GraphRendererOptions) {
@@ -97,15 +98,15 @@ export class GraphRenderer {
 			const from = this.options.positions[edge.from];
 			const to = this.options.positions[edge.to];
 			if (!from || !to) continue;
-			const line = svgElement('line');
-			line.addClass('knowledge-map__edge', `is-${edge.kind}`);
-			line.setAttribute('x1', `${from.x}`);
-			line.setAttribute('y1', `${from.y}`);
-			line.setAttribute('x2', `${to.x}`);
-			line.setAttribute('y2', `${to.y}`);
-			line.style.setProperty('--knowledge-map-link-scale', `${this.options.linkScale}`);
-			this.edgeLayer.append(line);
-			this.edgeElements.set(edge.id, line);
+			const path = svgElement('path');
+			path.addClass('knowledge-map__edge', `is-${edge.kind}`);
+			path.setAttribute('d', createEdgePath(edge, from, to));
+			path.style.setProperty('--knowledge-map-link-scale', `${this.options.linkScale}`);
+			const title = svgElement('title');
+			title.textContent = edge.kind === 'containment' ? 'Folder hierarchy' : 'Note reference';
+			path.append(title);
+			this.edgeLayer.append(path);
+			this.edgeElements.set(edge.id, path);
 		}
 
 		for (const node of this.options.graph.nodes) this.renderNode(node);
@@ -285,14 +286,11 @@ export class GraphRenderer {
 	private updateConnectedEdges(nodeId: string): void {
 		for (const edge of this.options.graph.edges) {
 			if (edge.from !== nodeId && edge.to !== nodeId) continue;
-			const line = this.edgeElements.get(edge.id);
+			const path = this.edgeElements.get(edge.id);
 			const from = this.options.positions[edge.from];
 			const to = this.options.positions[edge.to];
-			if (!line || !from || !to) continue;
-			line.setAttribute('x1', `${from.x}`);
-			line.setAttribute('y1', `${from.y}`);
-			line.setAttribute('x2', `${to.x}`);
-			line.setAttribute('y2', `${to.y}`);
+			if (!path || !from || !to) continue;
+			path.setAttribute('d', createEdgePath(edge, from, to));
 		}
 	}
 

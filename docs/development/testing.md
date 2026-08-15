@@ -19,6 +19,8 @@ Use a disposable test vault containing nested folders, linked notes, an unlinked
 - Drill into a folder and confirm there is no synthetic `..` node, then use back, forward, and breadcrumbs.
 - Confirm the current folder is above a naturally sorted row of direct children.
 - Confirm a containment edge joins the current folder to every direct child.
+- Confirm containment edges are solid warm-orange curves and note links are dashed blue arcs.
+- Drag a connected node and confirm every attached curve follows it continuously.
 - Open a note normally and with Ctrl/Cmd-click.
 - Drag several nodes, close and reopen Obsidian, and confirm their positions remain.
 - Pan and zoom a map, reopen it, and confirm its viewport remains.
