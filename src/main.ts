@@ -8,11 +8,12 @@ import { CanvasManagerModal } from './ui/canvas-manager-modal';
 
 export default class KnowledgeMapPlugin extends Plugin {
 	store!: KnowledgeMapStore;
-	readonly excalidraw = new ExcalidrawIntegration();
+	excalidraw!: ExcalidrawIntegration;
 
 	async onload(): Promise<void> {
 		this.store = new KnowledgeMapStore(this);
 		await this.store.load();
+		this.excalidraw = new ExcalidrawIntegration(this.app, this.store);
 
 		this.registerView(KNOWLEDGE_MAP_VIEW_TYPE, (leaf) => new KnowledgeMapView(leaf, this));
 		this.registerView(KNOWLEDGE_MAP_GLOBE_VIEW_TYPE, (leaf) => new GlobeView(leaf, this));
@@ -27,9 +28,29 @@ export default class KnowledgeMapPlugin extends Plugin {
 			callback: () => void this.activateView(),
 		});
 		this.addCommand({
+			id: 'create-knowledge-canvas',
+			name: 'Create knowledge canvas',
+			callback: () => void this.excalidraw.createKnowledgeCanvas('/'),
+		});
+		this.addCommand({
 			id: 'new-blank-canvas',
-			name: 'Create new blank canvas',
+			name: 'Create plain Excalidraw canvas',
 			callback: () => void this.excalidraw.createBlank('/'),
+		});
+		this.addCommand({
+			id: 'refresh-knowledge-canvas',
+			name: 'Refresh active knowledge canvas',
+			callback: () => void this.excalidraw.refreshActiveKnowledgeCanvas(),
+		});
+		this.addCommand({
+			id: 'knowledge-canvas-back',
+			name: 'Go back in active knowledge canvas',
+			callback: () => void this.excalidraw.goBackActiveKnowledgeCanvas(),
+		});
+		this.addCommand({
+			id: 'reset-knowledge-canvas-layout',
+			name: 'Restore default layout in active knowledge canvas',
+			callback: () => void this.excalidraw.resetActiveKnowledgeCanvasLayout(),
 		});
 		this.addCommand({
 			id: 'open-globe',
@@ -43,7 +64,10 @@ export default class KnowledgeMapPlugin extends Plugin {
 		});
 		this.addSettingTab(new KnowledgeMapSettingTab(this.app, this));
 
-		this.app.workspace.onLayoutReady(() => this.registerVaultEvents());
+		this.app.workspace.onLayoutReady(() => {
+			this.registerVaultEvents();
+			this.excalidraw.bindOpenViews();
+		});
 	}
 
 	async activateGlobe(folderPath: string): Promise<void> {
@@ -76,6 +100,9 @@ export default class KnowledgeMapPlugin extends Plugin {
 	}
 
 	private registerVaultEvents(): void {
+		this.registerEvent(this.app.workspace.on('active-leaf-change', (leaf) => {
+			window.setTimeout(() => this.excalidraw.bindLeaf(leaf), 100);
+		}));
 		this.registerEvent(this.app.vault.on('create', () => this.refreshViews()));
 		this.registerEvent(this.app.vault.on('modify', () => this.refreshViews()));
 		this.registerEvent(this.app.vault.on('delete', (file) => {

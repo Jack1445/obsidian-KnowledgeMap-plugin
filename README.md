@@ -17,6 +17,7 @@ Unlike Obsidian's core Graph view, folders are first-class nodes: open the vault
 - Saves node positions and the viewport separately for every folder map.
 - Reacts to vault changes without requiring a manual rebuild.
 - Uses Obsidian theme colors so the graph fits light, dark, and community themes.
+- Creates live Knowledge canvases inside the installed Excalidraw plugin: the drawing starts with folder-aware nodes, supports folder drill-down, and keeps normal Excalidraw drawing tools available.
 
 ## Core concepts
 
@@ -66,6 +67,7 @@ This runs type checking, linting, tests, and a production build.
 
 - [Product overview](docs/product/overview.md)
 - [Core concepts and interaction rules](docs/product/concepts.md)
+- [Using the Excalidraw knowledge canvas](docs/product/knowledge-canvas.md)
 - [Architecture and folder responsibilities](docs/architecture/overview.md)
 - [Data and persistence](docs/architecture/data-model.md)
 - [Excalidraw and globe integrations](docs/architecture/integrations.md)

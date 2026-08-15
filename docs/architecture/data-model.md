@@ -24,10 +24,11 @@ interface KnowledgeMapData {
   settings: KnowledgeMapSettings;
   mapStates: Record<string, FolderMapState>;
   globePositions: Record<string, Record<string, GlobePosition>>;
+  knowledgeCanvases: Record<string, KnowledgeCanvasState>;
 }
 ```
 
-Each `FolderMapState` contains only viewport and node coordinates. Automatic coordinates are recalculated from the deterministic hierarchy layout; a dragged node is marked fixed and its saved coordinates take precedence. Globe coordinates are stored separately as latitude and longitude. A 250 ms debounce combines frequent drag/zoom updates. On plugin unload, pending data is flushed immediately.
+Each `FolderMapState` contains only viewport and node coordinates. Automatic coordinates are recalculated from the deterministic hierarchy layout; a dragged node is marked fixed and its saved coordinates take precedence. Globe coordinates are stored separately as latitude and longitude. Each `KnowledgeCanvasState` records the Excalidraw file's current folder, back-navigation history, and generated-node coordinates for each folder visited in that canvas. The Excalidraw scene itself remains stored by Excalidraw. Frequent scene changes and plugin-data writes are debounced. On view or plugin unload, pending positions are captured and data is flushed.
 
 ## Rename and delete behavior
 

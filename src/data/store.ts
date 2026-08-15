@@ -2,7 +2,12 @@ import type { Plugin } from 'obsidian';
 import { normalizeFolderPath, remapPath } from '../core/paths';
 import type { FolderMapState, SavedNodePosition, ViewportState } from '../core/graph';
 import { migrateData } from './migrations';
-import type { GlobePosition, KnowledgeMapData, KnowledgeMapSettings } from './schema';
+import type {
+	GlobePosition,
+	KnowledgeCanvasState,
+	KnowledgeMapData,
+	KnowledgeMapSettings,
+} from './schema';
 
 export class KnowledgeMapStore {
 	private data!: KnowledgeMapData;
@@ -24,6 +29,69 @@ export class KnowledgeMapStore {
 
 	getGlobePositions(folderPath: string): Record<string, GlobePosition> {
 		return this.data.globePositions[normalizeFolderPath(folderPath)] ?? {};
+	}
+
+	getKnowledgeCanvas(filePath: string): KnowledgeCanvasState | undefined {
+		return this.data.knowledgeCanvases[filePath];
+	}
+
+	registerKnowledgeCanvas(filePath: string, folderPath: string): void {
+		const normalized = normalizeFolderPath(folderPath);
+		this.data.knowledgeCanvases[filePath] = {
+			folderPath: normalized,
+			history: [normalized],
+			historyIndex: 0,
+			layouts: {},
+		};
+		this.queueSave();
+	}
+
+	getKnowledgeCanvasPositions(
+		filePath: string,
+		folderPath: string,
+	): Record<string, SavedNodePosition> {
+		return this.data.knowledgeCanvases[filePath]?.layouts[normalizeFolderPath(folderPath)] ?? {};
+	}
+
+	setKnowledgeCanvasPositions(
+		filePath: string,
+		folderPath: string,
+		positions: Record<string, SavedNodePosition>,
+	): void {
+		const state = this.data.knowledgeCanvases[filePath];
+		if (!state) return;
+		const key = normalizeFolderPath(folderPath);
+		state.layouts[key] = { ...(state.layouts[key] ?? {}), ...positions };
+		this.queueSave();
+	}
+
+	resetKnowledgeCanvasLayout(filePath: string, folderPath: string): void {
+		const state = this.data.knowledgeCanvases[filePath];
+		if (!state) return;
+		delete state.layouts[normalizeFolderPath(folderPath)];
+		this.queueSave();
+	}
+
+	openKnowledgeCanvasFolder(filePath: string, folderPath: string, addToHistory = true): void {
+		const normalized = normalizeFolderPath(folderPath);
+		const state = this.data.knowledgeCanvases[filePath];
+		if (!state) return;
+		state.folderPath = normalized;
+		if (addToHistory) {
+			state.history = state.history.slice(0, state.historyIndex + 1);
+			if (state.history[state.history.length - 1] !== normalized) state.history.push(normalized);
+			state.historyIndex = state.history.length - 1;
+		}
+		this.queueSave();
+	}
+
+	goBackKnowledgeCanvas(filePath: string): string | null {
+		const state = this.data.knowledgeCanvases[filePath];
+		if (!state || state.historyIndex <= 0) return null;
+		state.historyIndex -= 1;
+		state.folderPath = state.history[state.historyIndex] ?? '/';
+		this.queueSave();
+		return state.folderPath;
 	}
 
 	setGlobePosition(folderPath: string, nodeId: string, position: GlobePosition): void {
@@ -91,6 +159,28 @@ export class KnowledgeMapStore {
 			if (mappedPath !== mapPath) delete this.data.globePositions[mapPath];
 			this.data.globePositions[mappedPath] = mappedPositions;
 		}
+		for (const [canvasPath, state] of Object.entries(this.data.knowledgeCanvases)) {
+			const mappedCanvasPath = remapPath(canvasPath, oldPath, newPath);
+			const mappedState: KnowledgeCanvasState = {
+				folderPath: remapPath(state.folderPath, oldPath, newPath),
+				history: state.history.map((path) => remapPath(path, oldPath, newPath)),
+				historyIndex: state.historyIndex,
+				layouts: {},
+			};
+			for (const [layoutPath, positions] of Object.entries(state.layouts)) {
+				const mappedLayoutPath = remapPath(layoutPath, oldPath, newPath);
+				const mappedPositions: Record<string, SavedNodePosition> = {};
+				for (const [id, position] of Object.entries(positions)) {
+					const separator = id.indexOf(':');
+					const kind = separator < 0 ? '' : id.slice(0, separator + 1);
+					const nodePath = separator < 0 ? id : id.slice(separator + 1);
+					mappedPositions[`${kind}${remapPath(nodePath, oldPath, newPath)}`] = position;
+				}
+				mappedState.layouts[mappedLayoutPath] = mappedPositions;
+			}
+			if (mappedCanvasPath !== canvasPath) delete this.data.knowledgeCanvases[canvasPath];
+			this.data.knowledgeCanvases[mappedCanvasPath] = mappedState;
+		}
 		this.queueSave();
 	}
 
@@ -111,6 +201,11 @@ export class KnowledgeMapStore {
 			}
 			for (const id of Object.keys(positions)) {
 				if (id.endsWith(`:${path}`) || id.includes(`:${path}/`)) delete positions[id];
+			}
+		}
+		for (const canvasPath of Object.keys(this.data.knowledgeCanvases)) {
+			if (canvasPath === path || canvasPath.startsWith(`${path}/`)) {
+				delete this.data.knowledgeCanvases[canvasPath];
 			}
 		}
 		this.queueSave();

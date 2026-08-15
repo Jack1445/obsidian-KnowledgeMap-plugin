@@ -16,28 +16,24 @@ export class CanvasManagerModal extends Modal {
 		this.titleEl.setText('Knowledge canvases');
 		this.contentEl.createEl('p', {
 			cls: 'setting-item-description',
-			text: 'Create a freeform Excalidraw canvas, export the current folder map, or open the 3d globe.',
+			text: 'Create a live knowledge canvas with the complete Excalidraw toolset, a plain drawing, or open the 3d globe.',
 		});
 
 		new Setting(this.contentEl)
-			.setName('Blank canvas')
-			.setDesc('Open a standard Excalidraw canvas for text, icons, shapes, drawing, and file drag-and-drop.')
+			.setName('Knowledge canvas')
+			.setDesc('Start with this folder map inside Excalidraw. Drill into folders and drag more vault files or folders onto the drawing.')
 			.addButton((button) => button.setButtonText('Create').setCta().onClick(() => {
 				this.close();
-				void this.plugin.excalidraw.createBlank(this.folderPath);
+				void this.plugin.excalidraw.createKnowledgeCanvas(this.folderPath);
 			}));
 
 		new Setting(this.contentEl)
-			.setName('Current folder map canvas')
-			.setDesc('Create a standard Excalidraw drawing pre-populated with the visible folders, notes, and links.')
-			.addButton((button) => button
-				.setButtonText('Create')
-				.setDisabled(!this.graph || !this.positions)
-				.onClick(() => {
-					if (!this.graph || !this.positions) return;
-					this.close();
-					void this.plugin.excalidraw.createFromGraph(this.folderPath, this.graph, this.positions);
-				}));
+			.setName('Plain Excalidraw canvas')
+			.setDesc('Create an empty Excalidraw drawing without automatic knowledge map nodes.')
+			.addButton((button) => button.setButtonText('Create').onClick(() => {
+				this.close();
+				void this.plugin.excalidraw.createBlank(this.folderPath);
+			}));
 
 		new Setting(this.contentEl)
 			.setName('Globe canvas')
@@ -68,7 +64,8 @@ export class CanvasManagerModal extends Modal {
 
 	private addDrawing(parent: HTMLElement, file: TFile): void {
 		const button = parent.createEl('button', { cls: 'knowledge-map-canvas-list__item' });
-		button.createSpan({ cls: 'knowledge-map-canvas-list__name', text: file.basename });
+		const prefix = this.plugin.excalidraw.isKnowledgeCanvas(file) ? 'Knowledge · ' : '';
+		button.createSpan({ cls: 'knowledge-map-canvas-list__name', text: `${prefix}${file.basename}` });
 		button.createSpan({ cls: 'knowledge-map-canvas-list__path', text: file.parent?.path ?? '/' });
 		button.addEventListener('click', () => {
 			this.close();

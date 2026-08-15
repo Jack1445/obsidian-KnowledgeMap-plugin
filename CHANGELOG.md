@@ -17,6 +17,14 @@ All notable changes to Knowledge Map are documented here. Each tested GitHub che
 - Added in-canvas node-size and link-thickness controls.
 - Added canvas management for blank and graph-seeded native Excalidraw drawings.
 - Added a lazy-loaded 3D globe with local Earth/cloud textures and persistent geographic node positions.
+- Added live Excalidraw knowledge canvases with default folder maps, same-canvas folder drill-down, navigation history, refresh commands, and vault file/folder drop support.
+- Preserved user-created Excalidraw text, icons, shapes, and drawings when the generated folder layer is refreshed or drilled into.
+- Added direct click activation for knowledge nodes while preserving normal Excalidraw drag gestures.
+- Expanded Obsidian file-explorer drop detection so Markdown files and folders become the same editable circular knowledge nodes.
+- Refined Excalidraw knowledge nodes with clean solid borders, low-saturation paper-like fills, calmer type colors, consistent typography, and automatic restyling of existing managed nodes.
+- Added per-canvas, per-folder position persistence for generated Excalidraw knowledge nodes, including restoration after drill-down, back navigation, refresh, and reopening.
+- Restored gently bowed three-point Excalidraw connections for a softer knowledge-map appearance; the fixed reset-layout action can rebuild them if repeated manual dragging distorts a bend point.
+- Added **Reset knowledge layout** to Excalidraw's three-dot tool menu, plus a matching command that restores the current folder's generated layer without removing manual canvas content. The menu option appears only in registered Knowledge Map canvases.
 
 ### Changed — folder hierarchy and canvas entry points
 

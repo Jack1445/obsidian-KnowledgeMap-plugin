@@ -10,5 +10,11 @@ export function migrateData(raw: unknown): KnowledgeMapData {
 		settings: { ...defaults.settings, ...(candidate.settings ?? {}) },
 		mapStates: candidate.mapStates ?? {},
 		globePositions: candidate.globePositions ?? {},
+		knowledgeCanvases: Object.fromEntries(
+			Object.entries(candidate.knowledgeCanvases ?? {}).map(([filePath, state]) => [
+				filePath,
+				{ ...state, layouts: state.layouts ?? {} },
+			]),
+		),
 	};
 }

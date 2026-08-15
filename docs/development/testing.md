@@ -31,7 +31,15 @@ Use a disposable test vault containing nested folders, linked notes, an unlinked
 - Reset a folder layout and confirm only that folder is affected.
 - Confirm the root map has no visible Vault node.
 - Adjust node size and link thickness from the map toolbar.
-- With Excalidraw enabled, create a blank canvas and drag vault items into it.
-- Export a folder map to Excalidraw and confirm the generated drawing remains fully editable.
+- With Excalidraw enabled, create a Knowledge canvas and confirm the current folder map appears by default.
+- Directly click a folder circle or its label and confirm the same canvas shows that folder's children; drag a node and confirm dragging does not accidentally navigate.
+- Move several generated nodes, drill into another folder and return, then refresh and reopen the canvas; confirm each folder restores its own layout.
+- Repeatedly drag both endpoints of containment and note-reference connections; confirm the two-point bound lines remain attached without folds or loops.
+- Click **Reset layout** and confirm generated nodes return to their orderly default positions while manual nodes, text, and shapes remain.
+- Add ordinary Excalidraw text and shapes, drill into another folder, and confirm the added elements remain.
+- Drag a Markdown file and a folder from the file explorer onto the knowledge canvas; confirm both become editable nodes and the dropped folder can drill down.
+- Follow a note node link and confirm the real Markdown file opens.
+- Run the refresh command and confirm only the generated current-folder layer is rebuilt.
+- Create a plain Excalidraw canvas and confirm it has no automatic knowledge nodes.
 - Open the globe, rotate and zoom it, click nodes, drag a node to a new geographic position, and reopen it.
 - Open the map, globe, and canvas manager from both their ribbon icons and command-palette entries.

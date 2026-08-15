@@ -421,3 +421,20 @@
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
 }
+
+/* A real option inside Excalidraw's three-dot tool menu, only for knowledge canvases. */
+.excalidraw .knowledge-map-excalidraw-reset-menu {
+	display: flex;
+	flex-direction: column;
+	margin-top: 5px;
+	padding-top: 5px;
+	border-top: 1px solid var(--default-border-color);
+}
+
+.excalidraw .knowledge-map-excalidraw-reset-menu .dropdown-menu-item {
+	width: 100%;
+}
+
+.excalidraw .knowledge-map-excalidraw-reset-menu__icon {
+	display: inline-flex;
+}

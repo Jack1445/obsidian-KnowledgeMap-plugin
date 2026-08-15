@@ -1,10 +1,17 @@
-import type { FolderMapState } from '../core/graph';
+import type { FolderMapState, SavedNodePosition } from '../core/graph';
 
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export interface GlobePosition {
 	lat: number;
 	lng: number;
+}
+
+export interface KnowledgeCanvasState {
+	folderPath: string;
+	history: string[];
+	historyIndex: number;
+	layouts: Record<string, Record<string, SavedNodePosition>>;
 }
 
 export interface KnowledgeMapSettings {
@@ -19,6 +26,7 @@ export interface KnowledgeMapData {
 	settings: KnowledgeMapSettings;
 	mapStates: Record<string, FolderMapState>;
 	globePositions: Record<string, Record<string, GlobePosition>>;
+	knowledgeCanvases: Record<string, KnowledgeCanvasState>;
 }
 
 export const DEFAULT_SETTINGS: KnowledgeMapSettings = {
@@ -34,5 +42,6 @@ export function createDefaultData(): KnowledgeMapData {
 		settings: { ...DEFAULT_SETTINGS },
 		mapStates: {},
 		globePositions: {},
+		knowledgeCanvases: {},
 	};
 }
