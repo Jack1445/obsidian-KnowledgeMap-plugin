@@ -4,7 +4,7 @@ export const KNOWLEDGE_CANVAS_LINK_PREFIX = 'knowledge-map://';
 export const KNOWLEDGE_CANVAS_DATA_KEY = 'knowledgeMap';
 
 export type KnowledgeCanvasAction = 'folder' | 'back' | 'reset' | 'root';
-export type KnowledgeCanvasElementRole = 'edge' | 'header' | 'label' | 'navigation' | 'node';
+export type KnowledgeCanvasElementRole = 'edge' | 'formula' | 'header' | 'label' | 'navigation' | 'node';
 export type KnowledgeCanvasElementScope = 'manual' | 'map';
 
 export interface KnowledgeCanvasElementData {
@@ -13,6 +13,7 @@ export interface KnowledgeCanvasElementData {
 	role: KnowledgeCanvasElementRole;
 	action?: KnowledgeCanvasAction;
 	edgeKind?: MapEdge['kind'];
+	latex?: string;
 	nodeKind?: MapNodeKind;
 	path?: string;
 }

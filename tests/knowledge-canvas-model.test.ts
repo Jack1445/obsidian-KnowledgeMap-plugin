@@ -23,4 +23,14 @@ describe('knowledge canvas metadata', () => {
 		expect(readKnowledgeCanvasData({ customData: { knowledgeMap: data } })).toEqual(data);
 		expect(readKnowledgeCanvasData({ customData: { otherPlugin: data } })).toBeNull();
 	});
+
+	it('retains formula metadata as manual canvas content', () => {
+		const data = {
+			managed: true as const,
+			scope: 'manual' as const,
+			role: 'formula' as const,
+			latex: '\\frac{a}{b}',
+		};
+		expect(readKnowledgeCanvasData({ customData: { knowledgeMap: data } })).toEqual(data);
+	});
 });

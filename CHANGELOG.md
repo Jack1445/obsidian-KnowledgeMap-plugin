@@ -25,6 +25,8 @@ All notable changes to Knowledge Map are documented here. Each tested GitHub che
 - Added per-canvas, per-folder position persistence for generated Excalidraw knowledge nodes, including restoration after drill-down, back navigation, refresh, and reopening.
 - Restored gently bowed three-point Excalidraw connections for a softer knowledge-map appearance; the fixed reset-layout action can rebuild them if repeated manual dragging distorts a bend point.
 - Added **Reset knowledge layout** to Excalidraw's three-dot tool menu, plus a matching command that restores the current folder's generated layer without removing manual canvas content. The menu option appears only in registered Knowledge Map canvases.
+- Added a Knowledge-main-style LaTeX editor to knowledge canvases with live preview, syntax highlighting, five symbol palettes, insertion/editing, double-click editing, and Ctrl/Cmd+Shift+M.
+- Added whole-element visual bold for standalone Excalidraw text in knowledge canvases, including a real **B** option in the existing font row and Ctrl/Cmd+B. Bold state is stored in the drawing and kept aligned when text moves or changes.
 
 ### Changed — folder hierarchy and canvas entry points
 

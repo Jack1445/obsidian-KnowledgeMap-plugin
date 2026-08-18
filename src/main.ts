@@ -53,6 +53,16 @@ export default class KnowledgeMapPlugin extends Plugin {
 			callback: () => void this.excalidraw.resetActiveKnowledgeCanvasLayout(),
 		});
 		this.addCommand({
+			id: 'insert-or-edit-knowledge-canvas-formula',
+			name: 'Insert or edit formula in active knowledge canvas',
+			callback: () => void this.excalidraw.editFormulaInActiveKnowledgeCanvas(),
+		});
+		this.addCommand({
+			id: 'toggle-knowledge-canvas-text-bold',
+			name: 'Toggle bold for selected text in active knowledge canvas',
+			callback: () => void this.excalidraw.toggleBoldInActiveKnowledgeCanvas(),
+		});
+		this.addCommand({
 			id: 'open-globe',
 			name: 'Open knowledge globe',
 			callback: () => void this.activateGlobe('/'),

@@ -13,10 +13,16 @@
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
-  "keywords": ["obsidian", "knowledge-map", "graph", "notes"],
+  "keywords": [
+    "obsidian",
+    "knowledge-map",
+    "graph",
+    "notes"
+  ],
   "author": "Jack1445",
   "license": "MIT",
   "dependencies": {
+    "katex": "^0.17.0",
     "three": "^0.184.0"
   },
   "devDependencies": {

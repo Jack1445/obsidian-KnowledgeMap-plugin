@@ -438,3 +438,285 @@
 .excalidraw .knowledge-map-excalidraw-reset-menu__icon {
 	display: inline-flex;
 }
+
+/* Knowledge-canvas-only text weight control, inserted into Excalidraw's font row. */
+.excalidraw .panelColumn .buttonList.knowledge-map-excalidraw-font-row,
+.excalidraw .knowledge-map-excalidraw-font-row {
+	width: 13rem;
+	max-width: 13rem;
+	flex-wrap: nowrap;
+	gap: 0.2rem;
+}
+
+.excalidraw .knowledge-map-excalidraw-font-row > * {
+	flex: 0 0 var(--default-button-size);
+}
+
+.excalidraw .knowledge-map-excalidraw-bold-button {
+	flex: 0 0 var(--default-button-size);
+	display: inline-grid;
+	place-items: center;
+}
+
+.excalidraw .knowledge-map-excalidraw-bold-button.is-active .ToolIcon__icon {
+	background: var(--color-primary);
+	color: var(--text-on-accent);
+}
+
+.excalidraw .knowledge-map-excalidraw-bold-letter {
+	font-family: Arial, Helvetica, sans-serif;
+	font-size: 24px;
+	font-weight: 800;
+	line-height: 1;
+}
+
+/* Formula editor ported from Knowledge-main's warm, restrained note UI. */
+.knowledge-map-formula-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 1090;
+	background: transparent;
+}
+
+.knowledge-map-formula-dialog {
+	--knowledge-formula: #c0564e;
+	--knowledge-formula-strong: #a8473f;
+	--knowledge-formula-soft: #f7ece9;
+	position: fixed;
+	z-index: 1091;
+	display: flex;
+	flex-direction: column;
+	overflow: visible;
+	border: 1px solid color-mix(in srgb, var(--background-modifier-border) 80%, #9a8778);
+	border-radius: 12px;
+	background: var(--background-primary);
+	box-shadow: 0 16px 48px rgb(20 20 18 / 18%);
+	color: var(--text-normal);
+}
+
+.knowledge-map-formula-tabs {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-map-formula-tabs button {
+	min-width: 38px;
+	padding: 4px 8px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: 14px;
+}
+
+.knowledge-map-formula-tabs button:hover,
+.knowledge-map-formula-tabs button.is-active {
+	background: var(--knowledge-formula-soft);
+	color: var(--knowledge-formula);
+}
+
+.knowledge-map-formula-help {
+	margin-left: auto;
+	color: var(--text-faint);
+	font-size: 12px;
+	text-decoration: none;
+}
+
+.knowledge-map-formula-help:hover {
+	color: var(--knowledge-formula);
+	text-decoration: underline;
+}
+
+.knowledge-map-formula-editor {
+	position: relative;
+	min-height: 84px;
+	margin: 10px 12px 6px;
+}
+
+.knowledge-map-formula-highlight,
+.knowledge-map-formula-input {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 84px;
+	margin: 0;
+	padding: 8px 10px;
+	overflow: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 13px;
+	font-weight: 400;
+	letter-spacing: 0;
+	line-height: 1.7;
+	tab-size: 2;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.knowledge-map-formula-highlight {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	background: var(--background-primary-alt);
+	color: var(--text-normal);
+}
+
+.knowledge-map-formula-input {
+	position: relative;
+	display: block;
+	resize: vertical;
+	background: transparent;
+	color: transparent;
+	caret-color: var(--text-normal);
+	-webkit-text-fill-color: transparent;
+}
+
+.knowledge-map-formula-input::placeholder {
+	color: var(--text-faint);
+	-webkit-text-fill-color: var(--text-faint);
+}
+
+.knowledge-map-formula-input:focus {
+	border-color: color-mix(in srgb, var(--knowledge-formula) 55%, transparent);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--knowledge-formula-soft) 85%, transparent);
+	outline: none;
+}
+
+.knowledge-map-formula-command {
+	color: var(--knowledge-formula);
+}
+
+.knowledge-map-formula-preview {
+	display: grid;
+	min-height: 76px;
+	place-items: center;
+	margin: 0 12px 10px;
+	padding: 12px;
+	overflow: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	background: var(--background-primary-alt);
+}
+
+.knowledge-map-formula-preview math {
+	font-family: "Cambria Math", "STIX Two Math", serif;
+	font-size: 1.35em;
+}
+
+.knowledge-map-formula-preview-placeholder,
+.knowledge-map-formula-render-error {
+	color: var(--text-faint);
+	font-size: 13px;
+}
+
+.knowledge-map-formula-symbol-panel {
+	position: absolute;
+	bottom: calc(100% + 6px);
+	left: 0;
+	box-sizing: border-box;
+	width: 100%;
+	max-height: 260px;
+	padding: 8px;
+	overflow: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	background: var(--background-primary);
+	box-shadow: 0 -8px 32px rgb(20 20 18 / 16%);
+}
+
+.knowledge-map-formula-symbol-group + .knowledge-map-formula-symbol-group {
+	margin-top: 8px;
+}
+
+.knowledge-map-formula-symbol-label {
+	padding: 0 4px 4px;
+	color: var(--text-faint);
+	font-size: 11px;
+}
+
+.knowledge-map-formula-symbol-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+
+.knowledge-map-formula-symbol {
+	display: grid;
+	min-width: 32px;
+	height: 32px;
+	place-items: center;
+	padding: 0 6px;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-normal);
+}
+
+.knowledge-map-formula-symbol:hover {
+	background: var(--knowledge-formula-soft);
+	color: var(--knowledge-formula);
+}
+
+.knowledge-map-formula-symbol math {
+	font-family: "Cambria Math", "STIX Two Math", serif;
+	font-size: 1.05em;
+}
+
+.knowledge-map-formula-measurement {
+	position: fixed;
+	top: -10000px;
+	left: -10000px;
+	z-index: -1;
+	display: inline-block;
+	visibility: hidden;
+	width: max-content;
+	height: max-content;
+	pointer-events: none;
+}
+
+.knowledge-map-formula-export-math {
+	color: #2f2b27;
+	font-family: "Cambria Math", "STIX Two Math", serif;
+	font-size: 28px;
+}
+
+.knowledge-map-formula-footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	padding: 8px 12px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.knowledge-map-formula-hint {
+	margin-right: auto;
+	color: var(--text-faint);
+	font-size: 12px;
+}
+
+.knowledge-map-formula-footer button {
+	padding: 6px 12px;
+	border-radius: 8px;
+}
+
+.knowledge-map-formula-confirm {
+	border-color: var(--knowledge-formula) !important;
+	background: var(--knowledge-formula) !important;
+	color: #fff !important;
+}
+
+.knowledge-map-formula-confirm:hover {
+	background: var(--knowledge-formula-strong) !important;
+}
+
+.theme-dark .knowledge-map-formula-dialog {
+	--knowledge-formula: #d98078;
+	--knowledge-formula-strong: #c46c65;
+	--knowledge-formula-soft: rgb(192 86 78 / 18%);
+}

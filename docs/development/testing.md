@@ -37,6 +37,8 @@ Use a disposable test vault containing nested folders, linked notes, an unlinked
 - Repeatedly drag both endpoints of containment and note-reference connections; confirm the two-point bound lines remain attached without folds or loops.
 - Click **Reset layout** and confirm generated nodes return to their orderly default positions while manual nodes, text, and shapes remain.
 - Add ordinary Excalidraw text and shapes, drill into another folder, and confirm the added elements remain.
+- Select standalone text, confirm **B** appears in the existing font row, then toggle it with both the button and Ctrl/Cmd+B. Move, edit, recolor, reopen, and export the text; confirm the bold companion remains aligned and ordinary Excalidraw canvases do not show the control.
+- Insert a formula from the three-dot menu and with Ctrl/Cmd+Shift+M. Check all five symbol palettes, preview, Ctrl/Cmd+Enter, Escape, outside-click confirmation, persistence, movement, resizing, double-click editing, and edit-in-place position preservation.
 - Drag a Markdown file and a folder from the file explorer onto the knowledge canvas; confirm both become editable nodes and the dropped folder can drill down.
 - Follow a note node link and confirm the real Markdown file opens.
 - Run the refresh command and confirm only the generated current-folder layer is rebuilt.

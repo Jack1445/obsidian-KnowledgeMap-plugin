@@ -13,6 +13,7 @@ import { folderDisplayName, normalizeFolderPath } from '../core/paths';
 import type { KnowledgeMapStore } from '../data/store';
 import { VaultGraphBuilder } from '../obsidian/vault-graph-builder';
 import { createInitialPositions } from '../services/initial-layout';
+import { KnowledgeFormulaDialog, renderLatexToSvgDataUrl } from '../ui/formula-dialog';
 import {
 	KNOWLEDGE_CANVAS_DATA_KEY,
 	parseKnowledgeCanvasLink,
@@ -25,10 +26,16 @@ const EXCALIDRAW_VIEW_TYPE = 'excalidraw';
 const NODE_SCALE = 1.35;
 const FOLDER_SIZE = 112;
 const NOTE_SIZE = 84;
+const TEXT_STYLE_DATA_KEY = 'knowledgeMapTextStyle';
+const BOLD_OFFSET_X = 0.72;
+const BOLD_OFFSET_Y = 0.18;
 
 interface ExcalidrawElementLike {
 	id: string;
 	type?: string;
+	text?: string;
+	originalText?: string;
+	rawText?: string;
 	link?: string | null;
 	strokeColor?: string;
 	backgroundColor?: string;
@@ -38,6 +45,15 @@ interface ExcalidrawElementLike {
 	roughness?: number;
 	opacity?: number;
 	fontSize?: number;
+	fontFamily?: number;
+	textAlign?: 'left' | 'center' | 'right';
+	verticalAlign?: 'top' | 'middle' | 'bottom';
+	lineHeight?: number;
+	angle?: number;
+	scale?: [number, number];
+	containerId?: string | null;
+	boundElements?: unknown[] | null;
+	locked?: boolean;
 	x?: number;
 	y?: number;
 	width?: number;
@@ -46,9 +62,21 @@ interface ExcalidrawElementLike {
 	customData?: Record<string, unknown>;
 }
 
+interface KnowledgeTextStyleData {
+	bold?: boolean;
+	shadowId?: string;
+	boldShadow?: boolean;
+	sourceId?: string;
+}
+
 interface ExcalidrawViewLike {
 	file?: TFile | null;
 	containerEl?: HTMLElement;
+	excalidrawAPI?: {
+		getAppState(): {
+			editingTextElement?: ExcalidrawElementLike | null;
+		};
+	};
 	getViewType(): string;
 }
 
@@ -108,6 +136,13 @@ interface ExcalidrawAutomateLike {
 			endObjectId?: string;
 		},
 	): string;
+	addImage?(options: {
+		topX: number;
+		topY: number;
+		imageFile: string;
+		scale?: boolean;
+		anchor?: boolean;
+	}): Promise<string | null>;
 	addToGroup?(ids: string[]): string;
 	addAppendUpdateCustomData?(
 		id: string,
@@ -118,6 +153,8 @@ interface ExcalidrawAutomateLike {
 	setView?(view?: ExcalidrawViewLike | 'active' | 'first'): ExcalidrawViewLike | undefined;
 	getViewElements?(): ExcalidrawElementLike[];
 	getViewSelectedElement?(): ExcalidrawElementLike | null;
+	getViewCenterPosition?(): { x: number; y: number };
+	getViewLastPointerPosition?(): { x: number; y: number };
 	copyViewElementsToEAforEditing?(elements: ExcalidrawElementLike[], copyImages?: boolean): void;
 	deleteViewElements?(elements: ExcalidrawElementLike[]): boolean;
 	addElementsToView?(
@@ -126,6 +163,7 @@ interface ExcalidrawAutomateLike {
 		newElementsOnTop?: boolean,
 		shouldRestoreElements?: boolean,
 	): Promise<boolean>;
+	selectElementsInView?(elements: ExcalidrawElementLike[] | string[]): void;
 	registerThisAsViewEA?(): boolean;
 	setFillStyle?(value: number): string;
 	setStrokeStyle?(value: number): string;
@@ -187,11 +225,23 @@ function elementData(
 	};
 }
 
+function readTextStyleData(element: ExcalidrawElementLike): KnowledgeTextStyleData | null {
+	const value = element.customData?.[TEXT_STYLE_DATA_KEY];
+	return value && typeof value === 'object' ? value : null;
+}
+
+function readFormulaLatex(element: ExcalidrawElementLike | null | undefined): string | null {
+	const value = element?.customData?.latex;
+	return element?.type === 'image' && typeof value === 'string' ? value : null;
+}
+
 export class ExcalidrawIntegration {
 	private readonly graphBuilder: VaultGraphBuilder;
 	private readonly boundViews = new WeakSet<object>();
 	private readonly navigationLocks = new Set<string>();
 	private readonly renderingViews = new WeakSet<object>();
+	private readonly stylingViews = new WeakSet<object>();
+	private readonly boldSyncTimers = new WeakMap<object, number>();
 
 	constructor(
 		private readonly app: App,
@@ -295,23 +345,30 @@ export class ExcalidrawIntegration {
 		ea.onSceneChangeHook = {
 			trackElements: true,
 			callback: (elements) => {
-				if (this.renderingViews.has(view)) return;
+				if (this.renderingViews.has(view) || this.stylingViews.has(view)) return;
 				latestElements = elements;
 				if (positionSaveTimer !== null) window.clearTimeout(positionSaveTimer);
 				positionSaveTimer = window.setTimeout(() => {
 					positionSaveTimer = null;
 					this.persistCanvasPositions(file, latestElements);
 				}, 150);
+				this.scheduleBoldLayerSync(view, ea, latestElements);
 			},
 		};
 		const removeDirectClick = this.registerDirectClick(file, view, ea);
+		const removeShortcuts = this.registerCanvasShortcuts(file, view, ea);
 		let removeResetMenuOption = (): void => undefined;
+		let removeTextControls = (): void => undefined;
 		ea.onViewUnloadHook = (unloadedView) => {
 			if (unloadedView !== view) return;
 			if (positionSaveTimer !== null) window.clearTimeout(positionSaveTimer);
+			const boldTimer = this.boldSyncTimers.get(view);
+			if (boldTimer !== undefined) window.clearTimeout(boldTimer);
 			this.persistCanvasPositions(file, latestElements);
 			removeDirectClick();
+			removeShortcuts();
 			removeResetMenuOption();
+			removeTextControls();
 			ea.onLinkClickHook = undefined;
 			ea.onDropHook = undefined;
 			ea.onSceneChangeHook = null;
@@ -320,6 +377,7 @@ export class ExcalidrawIntegration {
 		if (registered) {
 			this.boundViews.add(view);
 			removeResetMenuOption = this.registerResetMenuOption(file, view, ea);
+			removeTextControls = this.registerTextStyleControls(view, ea);
 			void this.polishManagedElements(ea);
 		}
 		return registered;
@@ -374,6 +432,24 @@ export class ExcalidrawIntegration {
 		const ea = this.requireApi()?.getAPI?.(view);
 		if (!ea) return;
 		await this.restoreDefaultLayout(file, view, ea);
+	}
+
+	async editFormulaInActiveKnowledgeCanvas(): Promise<void> {
+		const context = this.getActiveKnowledgeCanvasContext();
+		if (!context) return;
+		const selected = context.ea.getViewSelectedElement?.() ?? null;
+		await this.openFormulaEditor(
+			context.file,
+			context.view,
+			context.ea,
+			readFormulaLatex(selected) === null ? null : selected,
+		);
+	}
+
+	async toggleBoldInActiveKnowledgeCanvas(): Promise<void> {
+		const context = this.getActiveKnowledgeCanvasContext();
+		if (!context) return;
+		await this.toggleCurrentTextBold(context.view, context.ea);
 	}
 
 	private async followKnowledgeLink(
@@ -445,11 +521,21 @@ export class ExcalidrawIntegration {
 				}
 			}, 0);
 		};
+		const onDoubleClick = (event: MouseEvent): void => {
+			if (event.button !== 0) return;
+			const element = ea.getViewSelectedElement?.();
+			if (!element || readFormulaLatex(element) === null) return;
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			void this.openFormulaEditor(file, view, ea, element);
+		};
 		container.addEventListener('pointerdown', onPointerDown, true);
 		container.addEventListener('pointerup', onPointerUp, true);
+		container.addEventListener('dblclick', onDoubleClick, true);
 		return () => {
 			container.removeEventListener('pointerdown', onPointerDown, true);
 			container.removeEventListener('pointerup', onPointerUp, true);
+			container.removeEventListener('dblclick', onDoubleClick, true);
 		};
 	}
 
@@ -489,21 +575,46 @@ export class ExcalidrawIntegration {
 				const group = menuContainer.createDiv({
 					cls: 'knowledge-map-excalidraw-reset-menu',
 				});
-				const item = group.createEl('button', {
-					cls: 'dropdown-menu-item',
-				});
-				item.type = 'button';
-				item.setAttribute('aria-label', 'Reset knowledge layout');
-				const text = item.createSpan({ cls: 'dropdown-menu-item__text' });
-				const icon = text.createSpan({ cls: 'knowledge-map-excalidraw-reset-menu__icon' });
-				setIcon(icon, 'rotate-ccw');
-				text.createSpan({ text: 'Reset knowledge layout' });
-				item.addEventListener('pointerdown', (event) => event.stopPropagation());
-				item.addEventListener('click', (event) => {
-					event.preventDefault();
-					event.stopPropagation();
-					void this.activateKnowledgeTarget(file, view, ea, { action: 'reset' }, false);
-				});
+				const addItem = (
+					label: string,
+					iconName: string,
+					onClick: () => void,
+				): void => {
+					const item = group.createEl('button', { cls: 'dropdown-menu-item' });
+					item.type = 'button';
+					item.setAttribute('aria-label', label);
+					const text = item.createSpan({ cls: 'dropdown-menu-item__text' });
+					const icon = text.createSpan({ cls: 'knowledge-map-excalidraw-reset-menu__icon' });
+					setIcon(icon, iconName);
+					text.createSpan({ text: label });
+					item.addEventListener('pointerdown', (event) => event.stopPropagation());
+					item.addEventListener('click', (event) => {
+						event.preventDefault();
+						event.stopPropagation();
+						const MenuKeyboardEvent = menu.ownerDocument.defaultView?.KeyboardEvent ?? KeyboardEvent;
+						(menu.ownerDocument.defaultView ?? window).dispatchEvent(new MenuKeyboardEvent(
+							'keydown',
+							{ key: 'Escape', code: 'Escape', bubbles: true, cancelable: true },
+						));
+						onClick();
+					});
+				};
+				const selectedFormula = readFormulaLatex(ea.getViewSelectedElement?.()) !== null;
+				addItem(
+					selectedFormula ? 'Edit formula' : 'Insert formula',
+					'sigma',
+					() => void this.openFormulaEditor(
+						file,
+						view,
+						ea,
+						selectedFormula ? ea.getViewSelectedElement?.() ?? null : null,
+					),
+				);
+				addItem(
+					'Reset knowledge layout',
+					'rotate-ccw',
+					() => void this.activateKnowledgeTarget(file, view, ea, { action: 'reset' }, false),
+				);
 			}
 		};
 		const scheduleInsertion = (): void => {
@@ -525,6 +636,465 @@ export class ExcalidrawIntegration {
 			document.querySelectorAll('.knowledge-map-excalidraw-reset-menu')
 				.forEach((element) => element.remove());
 		};
+	}
+
+	private registerCanvasShortcuts(
+		file: TFile,
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+	): () => void {
+		const container = view.containerEl;
+		if (!container) return () => undefined;
+		const viewWindow = container.ownerDocument.defaultView ?? window;
+		const onKeyDown = (event: KeyboardEvent): void => {
+			if (this.app.workspace.getLeaf(false)?.view !== view) return;
+			if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+			if (event.target instanceof Element && event.target.closest('.knowledge-map-formula-dialog')) return;
+			const key = event.key.toLowerCase();
+			if (key === 'm' && event.shiftKey) {
+				event.preventDefault();
+				event.stopImmediatePropagation();
+				const selected = ea.getViewSelectedElement?.() ?? null;
+				void this.openFormulaEditor(
+					file,
+					view,
+					ea,
+					readFormulaLatex(selected) === null ? null : selected,
+				);
+				return;
+			}
+			if (key !== 'b' || event.shiftKey) return;
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			void this.toggleCurrentTextBold(view, ea);
+		};
+		// Excalidraw handles editing shortcuts before events reach the canvas
+		// container. Listening on the owning window in capture phase makes Ctrl+B
+		// reliable both while editing text and after selecting a text element.
+		viewWindow.addEventListener('keydown', onKeyDown, true);
+		return () => viewWindow.removeEventListener('keydown', onKeyDown, true);
+	}
+
+	private registerTextStyleControls(
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+	): () => void {
+		const container = view.containerEl;
+		if (!container) return () => undefined;
+		const document = container.ownerDocument;
+		const viewWindow = document.defaultView ?? window;
+		let disposed = false;
+		let animationFrame: number | null = null;
+
+		const update = (): void => {
+			animationFrame = null;
+			if (disposed) return;
+			const selected = this.resolvePrimaryTextElement(
+				ea,
+				ea.getViewSelectedElement?.()
+					?? view.excalidrawAPI?.getAppState().editingTextElement
+					?? null,
+			);
+			const existingButtons = container.querySelectorAll<HTMLElement>('.knowledge-map-excalidraw-bold-button');
+			if (!selected) {
+				existingButtons.forEach((element) => {
+					const row = element.parentElement;
+					element.remove();
+					row?.removeClass('knowledge-map-excalidraw-font-row');
+				});
+				return;
+			}
+			const active = readTextStyleData(selected)?.bold === true;
+			if (existingButtons.length > 0) {
+				existingButtons.forEach((button) => {
+					button.parentElement?.addClass('knowledge-map-excalidraw-font-row');
+					button.toggleClass('is-active', active);
+				});
+				return;
+			}
+			const row = this.findFontControlRow(container);
+			if (!row) return;
+			row.addClass('knowledge-map-excalidraw-font-row');
+			const button = row.createEl('button', { cls: 'ToolIcon ToolIcon_type_button' });
+			button.type = 'button';
+			button.addClass('knowledge-map-excalidraw-bold-button');
+			button.toggleClass('is-active', active);
+			button.setAttribute('aria-label', 'Bold — Ctrl+B');
+			button.title = 'Bold — Ctrl+B';
+			const icon = button.createDiv({ cls: 'ToolIcon__icon' });
+			icon.createSpan({ text: 'B', cls: 'knowledge-map-excalidraw-bold-letter' });
+			button.addEventListener('pointerdown', (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+			});
+			button.addEventListener('click', (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				void this.toggleCurrentTextBold(view, ea);
+			});
+		};
+		const scheduleUpdate = (): void => {
+			if (animationFrame !== null) return;
+			animationFrame = viewWindow.requestAnimationFrame(update);
+		};
+		const Observer = document.defaultView?.MutationObserver ?? MutationObserver;
+		const observer = new Observer(scheduleUpdate);
+		observer.observe(container, { childList: true, subtree: true });
+		const interval = viewWindow.setInterval(scheduleUpdate, 250);
+		scheduleUpdate();
+		return () => {
+			disposed = true;
+			observer.disconnect();
+			viewWindow.clearInterval(interval);
+			if (animationFrame !== null) viewWindow.cancelAnimationFrame(animationFrame);
+			container.querySelectorAll<HTMLElement>('.knowledge-map-excalidraw-bold-button')
+				.forEach((element) => {
+					const row = element.parentElement;
+					element.remove();
+					row?.removeClass('knowledge-map-excalidraw-font-row');
+				});
+		};
+	}
+
+	private findFontControlRow(container: HTMLElement): HTMLElement | null {
+		const labels = Array.from(container.querySelectorAll<HTMLElement>('*')).filter((element) => {
+			if (element.children.length > 0 || element.getClientRects().length === 0) return false;
+			const text = element.textContent?.trim().toLocaleLowerCase();
+			return text === '字体' || text === 'font family';
+		});
+		for (const label of labels) {
+			let section: HTMLElement | null = label.parentElement;
+			for (let depth = 0; section && depth < 5; depth += 1, section = section.parentElement) {
+				const buttonList = section.querySelector<HTMLElement>('.buttonList');
+				if (buttonList && buttonList.children.length >= 3 && buttonList.children.length <= 10) {
+					return buttonList;
+				}
+				const candidates = [section, ...Array.from(section.querySelectorAll<HTMLElement>('div'))];
+				for (const candidate of candidates) {
+					const controls = Array.from(candidate.children)
+						.filter((child) => child.tagName === 'BUTTON' || child.tagName === 'LABEL');
+					if (controls.length >= 3 && controls.length <= 10) return candidate;
+				}
+			}
+		}
+		return null;
+	}
+
+	private async openFormulaEditor(
+		file: TFile,
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+		element: ExcalidrawElementLike | null,
+	): Promise<void> {
+		if (!this.store.getKnowledgeCanvas(file.path)) return;
+		const container = view.containerEl;
+		if (!container || !ea.addImage || !ea.addElementsToView) {
+			new Notice('This Excalidraw version does not expose the image automation API.');
+			return;
+		}
+		if (container.ownerDocument.querySelector('.knowledge-map-formula-dialog')) return;
+		const rect = container.getBoundingClientRect();
+		const initialLatex = readFormulaLatex(element) ?? '';
+		const dialog = new KnowledgeFormulaDialog({
+			document: container.ownerDocument,
+			initialLatex,
+			anchor: {
+				left: rect.left + Math.max(12, (rect.width - 520) / 2),
+				bottom: rect.top + 170,
+			},
+			onConfirm: async (latex) => {
+				await this.insertOrUpdateFormula(view, ea, latex, element);
+			},
+		});
+		dialog.open();
+	}
+
+	private async insertOrUpdateFormula(
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+		latex: string,
+		existing: ExcalidrawElementLike | null,
+	): Promise<void> {
+		if (!ea.addImage || !ea.addElementsToView) return;
+		const normalized = latex.trim();
+		if (!normalized) {
+			if (existing) {
+				ea.deleteViewElements?.([existing]);
+				new Notice('Formula removed.');
+			}
+			return;
+		}
+		this.stylingViews.add(view);
+		try {
+			ea.setView?.(view);
+			ea.reset();
+			const dataUrl = await renderLatexToSvgDataUrl(
+				normalized,
+				view.containerEl?.ownerDocument ?? document,
+			);
+			if (!dataUrl) {
+				new Notice('Could not render the LaTeX formula.');
+				return;
+			}
+			const id = await ea.addImage({
+				topX: 0,
+				topY: 0,
+				imageFile: dataUrl,
+				scale: false,
+				anchor: false,
+			});
+			if (!id) {
+				new Notice('Could not render the LaTeX formula.');
+				return;
+			}
+			const formula = ea.getElement(id);
+			if (!formula || formula.width === undefined || formula.height === undefined) {
+				new Notice('The rendered formula element was not available.');
+				return;
+			}
+			if (existing?.x !== undefined && existing.y !== undefined
+				&& existing.width !== undefined && existing.height !== undefined) {
+				const centerX = existing.x + existing.width / 2;
+				const centerY = existing.y + existing.height / 2;
+				const scale = existing.height / Math.max(1, formula.height);
+				formula.width *= scale;
+				formula.height *= scale;
+				formula.x = centerX - formula.width / 2;
+				formula.y = centerY - formula.height / 2;
+			} else {
+				const center = ea.getViewCenterPosition?.() ?? { x: 0, y: 0 };
+				formula.x = center.x - formula.width / 2;
+				formula.y = center.y - formula.height / 2;
+			}
+			this.tag(ea, id, {
+				latex: normalized,
+				...elementData('manual', 'formula', { latex: normalized }),
+			});
+			if (existing) ea.deleteViewElements?.([existing]);
+			const added = await ea.addElementsToView(false, true, true);
+			if (added === false) {
+				new Notice('Could not add the formula to Excalidraw.');
+				return;
+			}
+			ea.selectElementsInView?.([id]);
+			new Notice(existing
+				? 'Formula updated and selected.'
+				: 'Formula inserted in the center of the visible canvas and selected.');
+		} finally {
+			this.stylingViews.delete(view);
+		}
+	}
+
+	private resolvePrimaryTextElement(
+		ea: ExcalidrawAutomateLike,
+		element: ExcalidrawElementLike | null,
+	): ExcalidrawElementLike | null {
+		if (!element) return null;
+		const styleData = readTextStyleData(element);
+		let primary = element;
+		if (styleData?.boldShadow && styleData.sourceId) {
+			primary = ea.getViewElements?.().find((candidate) => candidate.id === styleData.sourceId) ?? element;
+		}
+		if (primary.type !== 'text' || primary.isDeleted) return null;
+		if (readKnowledgeCanvasData(primary)?.scope === 'map') return null;
+		return primary;
+	}
+
+	private async toggleCurrentTextBold(
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+	): Promise<void> {
+		const editing = view.excalidrawAPI?.getAppState().editingTextElement ?? null;
+		if (!editing) {
+			await this.toggleSelectedTextBold(view, ea);
+			return;
+		}
+
+		// Commit the textarea before creating/updating the visual weight layer;
+		// otherwise Excalidraw can overwrite the change when text editing ends.
+		const activeElement = view.containerEl?.ownerDocument.activeElement;
+		if (activeElement instanceof HTMLElement) activeElement.blur();
+		await new Promise<void>((resolve) => window.setTimeout(resolve, 40));
+		const latest = ea.getViewElements?.().find((element) => element.id === editing.id) ?? editing;
+		await this.toggleSelectedTextBold(view, ea, latest);
+	}
+
+	private async toggleSelectedTextBold(
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+		target?: ExcalidrawElementLike | null,
+	): Promise<void> {
+		const primary = this.resolvePrimaryTextElement(
+			ea,
+			target ?? ea.getViewSelectedElement?.() ?? null,
+		);
+		if (!primary) {
+			new Notice('Select a text element in this knowledge canvas first.');
+			return;
+		}
+		if (primary.containerId) {
+			new Notice('Bold currently supports standalone text elements, not text bound inside a shape.');
+			return;
+		}
+		if (!ea.copyViewElementsToEAforEditing || !ea.addElementsToView) return;
+		const styleData = readTextStyleData(primary);
+		this.stylingViews.add(view);
+		try {
+			if (styleData?.bold) {
+				const shadow = ea.getViewElements?.().find((candidate) => candidate.id === styleData.shadowId);
+				if (shadow) ea.deleteViewElements?.([shadow]);
+				ea.reset();
+				ea.copyViewElementsToEAforEditing([primary], false);
+				const editable = ea.getElement(primary.id);
+				if (!editable) return;
+				editable.customData = {
+					...(editable.customData ?? {}),
+					[TEXT_STYLE_DATA_KEY]: { bold: false },
+				};
+				await ea.addElementsToView(false, true, false);
+				ea.selectElementsInView?.([primary.id]);
+				new Notice('Bold removed.');
+				return;
+			}
+			if (
+				primary.x === undefined || primary.y === undefined
+				|| primary.width === undefined || primary.height === undefined
+			) return;
+			ea.reset();
+			ea.copyViewElementsToEAforEditing([primary], false);
+			const editablePrimary = ea.getElement(primary.id);
+			if (!editablePrimary) return;
+			const shadowId = ea.addText(
+				primary.x + BOLD_OFFSET_X,
+				primary.y + BOLD_OFFSET_Y,
+				primary.text ?? primary.originalText ?? '',
+				{
+					width: primary.width,
+					textAlign: primary.textAlign ?? 'left',
+					autoResize: false,
+				},
+			);
+			const shadow = ea.getElement(shadowId);
+			if (!shadow) return;
+			this.copyBoldVisualProperties(primary, shadow);
+			shadow.customData = {
+				...(shadow.customData ?? {}),
+				[TEXT_STYLE_DATA_KEY]: { boldShadow: true, sourceId: primary.id },
+			};
+			editablePrimary.customData = {
+				...(editablePrimary.customData ?? {}),
+				[TEXT_STYLE_DATA_KEY]: { bold: true, shadowId },
+			};
+			await ea.addElementsToView(false, true, false);
+			ea.selectElementsInView?.([primary.id]);
+			new Notice('Bold applied.');
+		} finally {
+			this.stylingViews.delete(view);
+		}
+	}
+
+	private copyBoldVisualProperties(
+		primary: ExcalidrawElementLike,
+		shadow: ExcalidrawElementLike,
+	): void {
+		for (const key of [
+			'text', 'originalText', 'rawText', 'strokeColor', 'backgroundColor', 'fontSize',
+			'fontFamily', 'textAlign', 'verticalAlign', 'lineHeight', 'angle', 'scale', 'opacity',
+			'width', 'height',
+		] as const) {
+			const value = primary[key];
+			if (value !== undefined) Object.assign(shadow, { [key]: value });
+		}
+		shadow.x = (primary.x ?? 0) + BOLD_OFFSET_X;
+		shadow.y = (primary.y ?? 0) + BOLD_OFFSET_Y;
+		shadow.link = null;
+		shadow.containerId = null;
+		shadow.boundElements = null;
+		shadow.locked = true;
+	}
+
+	private scheduleBoldLayerSync(
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+		elements: readonly ExcalidrawElementLike[],
+	): void {
+		const current = this.boldSyncTimers.get(view);
+		if (current !== undefined) window.clearTimeout(current);
+		const timer = window.setTimeout(() => {
+			this.boldSyncTimers.delete(view);
+			void this.syncBoldLayers(view, ea, elements);
+		}, 120);
+		this.boldSyncTimers.set(view, timer);
+	}
+
+	private async syncBoldLayers(
+		view: ExcalidrawViewLike,
+		ea: ExcalidrawAutomateLike,
+		elements: readonly ExcalidrawElementLike[],
+	): Promise<void> {
+		if (this.stylingViews.has(view) || !ea.copyViewElementsToEAforEditing || !ea.addElementsToView) return;
+		const container = view.containerEl;
+		const editingText = container
+			? Array.from(container.querySelectorAll('textarea')).some((textarea) => {
+				return textarea.getClientRects().length > 0
+					&& !textarea.closest('.knowledge-map-formula-dialog');
+			})
+			: false;
+		if (editingText) return;
+
+		const byId = new Map(elements.filter((element) => !element.isDeleted).map((element) => [element.id, element]));
+		const changes: ExcalidrawElementLike[] = [];
+		const orphans: ExcalidrawElementLike[] = [];
+		for (const element of byId.values()) {
+			const data = readTextStyleData(element);
+			if (data?.boldShadow && data.sourceId && !byId.has(data.sourceId)) orphans.push(element);
+			if (!data?.bold || !data.shadowId) continue;
+			const shadow = byId.get(data.shadowId);
+			if (!shadow) continue;
+			const expected = { ...shadow };
+			this.copyBoldVisualProperties(element, expected);
+			const keys: (keyof ExcalidrawElementLike)[] = [
+				'text', 'originalText', 'rawText', 'strokeColor', 'backgroundColor', 'fontSize',
+				'fontFamily', 'textAlign', 'verticalAlign', 'lineHeight', 'angle', 'scale', 'opacity',
+				'width', 'height', 'x', 'y', 'locked',
+			];
+			if (keys.some((key) => JSON.stringify(shadow[key]) !== JSON.stringify(expected[key]))) {
+				changes.push(element, shadow);
+			}
+		}
+		if (orphans.length > 0) ea.deleteViewElements?.(orphans);
+		if (changes.length === 0) return;
+		const uniqueChanges = [...new Map(changes.map((element) => [element.id, element])).values()];
+		this.stylingViews.add(view);
+		try {
+			ea.reset();
+			ea.copyViewElementsToEAforEditing(uniqueChanges, false);
+			for (const primary of uniqueChanges) {
+				const data = readTextStyleData(primary);
+				if (!data?.bold || !data.shadowId) continue;
+				const editableShadow = ea.getElement(data.shadowId);
+				if (editableShadow) this.copyBoldVisualProperties(primary, editableShadow);
+			}
+			await ea.addElementsToView(false, true, false);
+		} finally {
+			this.stylingViews.delete(view);
+		}
+	}
+
+	private getActiveKnowledgeCanvasContext(): {
+		file: TFile;
+		view: ExcalidrawViewLike;
+		ea: ExcalidrawAutomateLike;
+	} | null {
+		const leaf = this.app.workspace.getLeaf(false);
+		const view = leaf?.view as unknown as ExcalidrawViewLike | undefined;
+		const file = view?.file;
+		if (!view || !file || !this.store.getKnowledgeCanvas(file.path)) {
+			new Notice('The active tab is not a knowledge map canvas.');
+			return null;
+		}
+		const ea = this.requireApi()?.getAPI?.(view);
+		return ea ? { file, view, ea } : null;
 	}
 
 	private async restoreDefaultLayout(
