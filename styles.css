@@ -535,6 +535,8 @@
 	position: relative;
 	min-height: 84px;
 	margin: 10px 12px 6px;
+	background: var(--background-primary-alt);
+	border-radius: 8px;
 }
 
 .knowledge-map-formula-highlight,
@@ -560,16 +562,19 @@
 .knowledge-map-formula-highlight {
 	position: absolute;
 	inset: 0;
+	z-index: 2;
 	pointer-events: none;
-	background: var(--background-primary-alt);
+	border-color: transparent;
+	background: transparent;
 	color: var(--text-normal);
 }
 
 .knowledge-map-formula-input {
 	position: relative;
+	z-index: 1;
 	display: block;
 	resize: vertical;
-	background: transparent;
+	background: var(--background-primary-alt);
 	color: transparent;
 	caret-color: var(--text-normal);
 	-webkit-text-fill-color: transparent;

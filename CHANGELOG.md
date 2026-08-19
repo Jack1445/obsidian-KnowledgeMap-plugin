@@ -28,6 +28,11 @@ All notable changes to Knowledge Map are documented here. Each tested GitHub che
 - Added a Knowledge-main-style LaTeX editor to knowledge canvases with live preview, syntax highlighting, five symbol palettes, insertion/editing, double-click editing, and Ctrl/Cmd+Shift+M.
 - Added whole-element visual bold for standalone Excalidraw text in knowledge canvases, including a real **B** option in the existing font row and Ctrl/Cmd+B. Bold state is stored in the drawing and kept aligned when text moves or changes.
 
+### Fixed
+
+- Kept existing LaTeX source visible when reopening a formula for editing.
+- Restored **Insert/Edit formula** and **Reset knowledge layout** after reloading the plugin without restarting Obsidian.
+
 ### Changed — folder hierarchy and canvas entry points
 
 - Removed the synthetic `..` parent-folder node; toolbar history and breadcrumbs handle upward navigation.

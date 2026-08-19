@@ -373,14 +373,17 @@ export class ExcalidrawIntegration {
 			ea.onDropHook = undefined;
 			ea.onSceneChangeHook = null;
 		};
-		const registered = ea.registerThisAsViewEA?.() ?? false;
-		if (registered) {
-			this.boundViews.add(view);
-			removeResetMenuOption = this.registerResetMenuOption(file, view, ea);
-			removeTextControls = this.registerTextStyleControls(view, ea);
-			void this.polishManagedElements(ea);
-		}
-		return registered;
+		ea.registerThisAsViewEA?.();
+		// Excalidraw can report false after an Obsidian hot reload because the
+		// previous plugin instance is still registered for this view. Menu options,
+		// direct pointer handling and shortcuts do not depend on that registration,
+		// so always attach them to the current view. Otherwise Insert formula and
+		// Reset layout disappear until the entire Obsidian app is restarted.
+		this.boundViews.add(view);
+		removeResetMenuOption = this.registerResetMenuOption(file, view, ea);
+		removeTextControls = this.registerTextStyleControls(view, ea);
+		void this.polishManagedElements(ea);
+		return true;
 	}
 
 	async refreshActiveKnowledgeCanvas(): Promise<void> {

@@ -223,6 +223,8 @@ export class KnowledgeFormulaDialog {
 		window.setTimeout(() => {
 			this.textarea?.focus();
 			this.textarea?.setSelectionRange(this.textarea.value.length, this.textarea.value.length);
+			this.update();
+			this.syncScroll();
 		}, 0);
 	}
 
