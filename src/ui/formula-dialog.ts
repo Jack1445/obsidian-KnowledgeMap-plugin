@@ -121,10 +121,16 @@ function createMathMl(ownerDocument: Document, latex: string, displayMode: boole
 	return math ? ownerDocument.importNode(math, true) : null;
 }
 
-export async function renderLatexToSvgDataUrl(
+export interface RenderedLatexSvg {
+	dataURL: string;
+	width: number;
+	height: number;
+}
+
+export async function renderLatexToSvg(
 	latex: string,
 	ownerDocument: Document = document,
-): Promise<string | null> {
+): Promise<RenderedLatexSvg | null> {
 	const math = createMathMl(ownerDocument, latex, true);
 	if (!math) return null;
 	math.setAttribute('display', 'block');
@@ -151,7 +157,18 @@ export async function renderLatexToSvgDataUrl(
 	const bytes = new TextEncoder().encode(xml);
 	let binary = '';
 	for (const byte of bytes) binary += String.fromCharCode(byte);
-	return 'data:image/svg+xml;base64,' + btoa(binary);
+	return {
+		dataURL: 'data:image/svg+xml;base64,' + btoa(binary),
+		width,
+		height,
+	};
+}
+
+export async function renderLatexToSvgDataUrl(
+	latex: string,
+	ownerDocument: Document = document,
+): Promise<string | null> {
+	return (await renderLatexToSvg(latex, ownerDocument))?.dataURL ?? null;
 }
 
 export interface FormulaDialogOptions {

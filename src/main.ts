@@ -5,6 +5,7 @@ import { KnowledgeMapSettingTab } from './settings/settings-tab';
 import { KNOWLEDGE_MAP_GLOBE_VIEW_TYPE, GlobeView } from './views/globe-view';
 import { KNOWLEDGE_MAP_VIEW_TYPE, KnowledgeMapView } from './views/knowledge-map-view';
 import { CanvasManagerModal } from './ui/canvas-manager-modal';
+import { KnowledgeFormulaDialog, renderLatexToSvg } from './ui/formula-dialog';
 
 export default class KnowledgeMapPlugin extends Plugin {
 	store!: KnowledgeMapStore;
@@ -82,6 +83,53 @@ export default class KnowledgeMapPlugin extends Plugin {
 
 	async activateGlobe(folderPath: string): Promise<void> {
 		await this.activateGlobeView(folderPath);
+	}
+
+	async editInlineFormula(initialLatex = ''): Promise<{
+		latex: string;
+		dataURL: string;
+		width: number;
+		height: number;
+	} | null> {
+		const ownerDocument = this.app.workspace.containerEl.ownerDocument;
+		if (ownerDocument.querySelector('.knowledge-map-formula-dialog')) return null;
+		const view = ownerDocument.defaultView ?? window;
+		return new Promise((resolve) => {
+			let settled = false;
+			const finish = (value: {
+				latex: string;
+				dataURL: string;
+				width: number;
+				height: number;
+			} | null): void => {
+				if (settled) return;
+				settled = true;
+				resolve(value);
+			};
+			const dialog = new KnowledgeFormulaDialog({
+				document: ownerDocument,
+				initialLatex,
+				anchor: {
+					left: Math.max(12, (view.innerWidth - 520) / 2),
+					bottom: 170,
+				},
+				onConfirm: async (latex) => {
+					const normalized = latex.trim();
+					if (!normalized) {
+						finish(null);
+						return;
+					}
+					try {
+						const rendered = await renderLatexToSvg(normalized, ownerDocument);
+						finish(rendered ? { latex: normalized, ...rendered } : null);
+					} catch {
+						finish(null);
+					}
+				},
+				onCancel: () => finish(null),
+			});
+			dialog.open();
+		});
 	}
 
 	async activateView(folderPath = '/'): Promise<void> {
