@@ -381,7 +381,10 @@ export class ExcalidrawIntegration {
 		// Reset layout disappear until the entire Obsidian app is restarted.
 		this.boundViews.add(view);
 		removeResetMenuOption = this.registerResetMenuOption(file, view, ea);
-		removeTextControls = this.registerTextStyleControls(view, ea);
+		// Partial bold is now implemented by the maintained Excalidraw Core fork.
+		// Do not inject the legacy whole-element B button because it duplicates
+		// the native control and competes for the textarea selection.
+		removeTextControls = (): void => undefined;
 		void this.polishManagedElements(ea);
 		return true;
 	}
@@ -666,14 +669,11 @@ export class ExcalidrawIntegration {
 				);
 				return;
 			}
-			if (key !== 'b' || event.shiftKey) return;
-			event.preventDefault();
-			event.stopImmediatePropagation();
-			void this.toggleCurrentTextBold(view, ea);
+			// Ctrl/Cmd+B belongs to the native Core text editor. The former
+			// Knowledge Map capture handler stopped the event before the Core fork
+			// could apply formatting to the selected character range.
 		};
-		// Excalidraw handles editing shortcuts before events reach the canvas
-		// container. Listening on the owning window in capture phase makes Ctrl+B
-		// reliable both while editing text and after selecting a text element.
+		// Keep only the Knowledge Map-specific formula shortcut here.
 		viewWindow.addEventListener('keydown', onKeyDown, true);
 		return () => viewWindow.removeEventListener('keydown', onKeyDown, true);
 	}
